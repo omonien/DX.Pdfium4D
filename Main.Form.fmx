@@ -1,0 +1,11 @@
+object Form48: TForm48
+  Left = 0
+  Top = 0
+  Caption = 'DX PDF-Viewer 1.0'
+  ClientHeight = 465
+  ClientWidth = 480
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  DesignerMasterStyle = 0
+end
