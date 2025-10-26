@@ -7,13 +7,15 @@ uses
   System.Types,
   System.UITypes,
   System.Classes,
-  System.IOUtils,
   FMX.Types,
   FMX.Controls,
   FMX.Forms,
   FMX.Dialogs,
   FMX.StdCtrls,
   FMX.Menus,
+  FMX.Objects,
+  FMX.Controls.Presentation,
+  System.IOUtils, //Name clash with TPath in FMX.Objects!!
   DX.Pdf.Viewer.FMX,
   DX.Pdf.Document;
 
@@ -23,8 +25,6 @@ type
     StatusBar: TStatusBar;
     StatusLabel: TLabel;
     PageLabel: TLabel;
-    PopupMenu: TPopupMenu;
-    MenuItemOpenFile: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure DropPanelClick(Sender: TObject);
