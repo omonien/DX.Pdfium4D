@@ -1,9 +1,9 @@
 @echo off
-REM Build HolocronTests for Win64
+REM Build DX Pdfium4D Tests for Win64
 
 echo.
 echo ========================================
-echo Building HolocronTests (Win64)...
+echo Building DX Pdfium4D Tests (Win64)...
 echo ========================================
 echo.
 
@@ -12,7 +12,7 @@ if not exist Win64\Debug mkdir Win64\Debug
 if not exist Win64\Debug\dcu mkdir Win64\Debug\dcu
 
 REM Compile tests with correct paths
-dcc64 -B -U..\..\lib\DUnitX\Source;.. -E.\Win64\Debug -N.\Win64\Debug\dcu HolocronTests.dpr
+dcc64 -B -U..\..\lib\DUnitX\Source;.. -E.\Win64\Debug -N.\Win64\Debug\dcu DxPdfium4dTests.dpr
 
 if errorlevel 1 (
     echo.

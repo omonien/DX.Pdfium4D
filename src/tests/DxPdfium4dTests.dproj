@@ -4,10 +4,10 @@
         <AppType>Console</AppType>
         <Config Condition="'$(Config)'==''">Debug</Config>
         <FrameworkType>None</FrameworkType>
-        <MainSource>HolocronTests.dpr</MainSource>
+        <MainSource>DxPdfium4dTests.dpr</MainSource>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <ProjectGuid>{DF3D8679-B620-401A-9611-A48C5075D824}</ProjectGuid>
-        <ProjectName Condition="'$(ProjectName)'==''">HolocronTests</ProjectName>
+        <ProjectName Condition="'$(ProjectName)'==''">DxPdfium4dTests</ProjectName>
         <ProjectVersion>20.3</ProjectVersion>
         <TargetedPlatforms>693377</TargetedPlatforms>
     </PropertyGroup>

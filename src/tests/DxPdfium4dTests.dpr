@@ -1,12 +1,14 @@
 {*******************************************************************************
-  HOLOCRON Tests
+  DX Pdfium4D Tests
 
-  Unit tests for HOLOCRON - The Delphi PDF Viewer
-  https://developer-experts.net
+  Unit tests for DX Pdfium4D - Delphi Cross-Platform Wrapper für Pdfium
+  https://github.com/omonien/DX-Pdfium4D
 
+  Author: Olaf Monien
   Copyright (c) 2025 Olaf Monien
+  License: MIT - see LICENSE file
 *******************************************************************************}
-program HolocronTests;
+program DxPdfium4dTests;
 
 {$IFNDEF TESTINSIGHT}
 {$APPTYPE CONSOLE}
