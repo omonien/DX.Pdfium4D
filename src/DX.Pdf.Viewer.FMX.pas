@@ -77,14 +77,28 @@ type
     procedure LoadFromFile(const AFileName: string; const APassword: string = '');
 
     /// <summary>
-    /// Loads a PDF document from a stream
+    /// Loads a PDF document from a stream (legacy method - loads entire stream into memory)
     /// </summary>
     /// <remarks>
-    /// The entire stream content is read into memory and kept for the lifetime
-    /// of the document, as PDFium requires the buffer to remain valid.
-    /// For large PDFs, consider using LoadFromFile instead.
+    /// DEPRECATED: Use LoadFromStreamEx for efficient streaming support.
+    /// This method reads the entire stream content into memory and keeps it for the lifetime
+    /// of the document. For large PDFs, use LoadFromStreamEx or LoadFromFile instead.
     /// </remarks>
     procedure LoadFromStream(AStream: TStream; const APassword: string = '');
+
+    /// <summary>
+    /// Loads a PDF document from a stream with true streaming support (recommended)
+    /// </summary>
+    /// <remarks>
+    /// This method uses PDFium's custom file access API for efficient streaming.
+    /// The stream is NOT loaded entirely into memory - PDFium reads blocks on demand.
+    /// The stream must remain valid and seekable for the lifetime of the document.
+    /// Ideal for large PDFs, network streams, or memory-constrained scenarios.
+    /// </remarks>
+    /// <param name="AStream">Source stream (must support seeking)</param>
+    /// <param name="AOwnsStream">If true, the viewer takes ownership and will free the stream on Close</param>
+    /// <param name="APassword">Optional password for encrypted PDFs</param>
+    procedure LoadFromStreamEx(AStream: TStream; AOwnsStream: Boolean = False; const APassword: string = '');
 
     /// <summary>
     /// Closes the currently loaded document
@@ -294,6 +308,16 @@ procedure TPdfViewer.LoadFromStream(AStream: TStream; const APassword: string = 
 begin
   Close;
   FDocument.LoadFromStream(AStream, APassword);
+  if FDocument.PageCount > 0 then
+    SetCurrentPageIndex(0)
+  else
+    FCurrentPageIndex := -1;
+end;
+
+procedure TPdfViewer.LoadFromStreamEx(AStream: TStream; AOwnsStream: Boolean; const APassword: string);
+begin
+  Close;
+  FDocument.LoadFromStreamEx(AStream, AOwnsStream, APassword);
   if FDocument.PageCount > 0 then
     SetCurrentPageIndex(0)
   else

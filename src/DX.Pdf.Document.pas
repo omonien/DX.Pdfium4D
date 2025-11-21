@@ -33,6 +33,26 @@ type
 
   TPdfPage = class;
   TPdfDocument = class;
+  TPdfStreamAdapter = class;
+
+  /// <summary>
+  /// Adapter class that bridges TStream to PDFium's FPDF_FILEACCESS interface
+  /// Enables true streaming support without loading entire PDF into memory
+  /// </summary>
+  TPdfStreamAdapter = class
+  private
+    FStream: TStream;
+    FFileAccess: FPDF_FILEACCESS;
+    FOwnsStream: Boolean;
+    class function GetBlockCallback(param: Pointer; position: Cardinal;
+      pBuf: PByte; size: Cardinal): Integer; cdecl; static;
+  public
+    constructor Create(AStream: TStream; AOwnsStream: Boolean = False);
+    destructor Destroy; override;
+
+    property FileAccess: FPDF_FILEACCESS read FFileAccess;
+    property Stream: TStream read FStream;
+  end;
 
   /// <summary>
   /// Represents a single page in a PDF document
@@ -89,6 +109,7 @@ type
     FPageCount: Integer;
     FFileName: string;
     FMemoryBuffer: TBytes; // Buffer must remain valid while document is open!
+    FStreamAdapter: TPdfStreamAdapter; // Stream adapter must remain valid while document is open!
   public
     constructor Create;
     destructor Destroy; override;
@@ -99,14 +120,28 @@ type
     procedure LoadFromFile(const AFileName: string; const APassword: string = '');
 
     /// <summary>
-    /// Loads a PDF document from a stream
+    /// Loads a PDF document from a stream (legacy method - loads entire stream into memory)
     /// </summary>
     /// <remarks>
-    /// The entire stream content is read into memory and kept for the lifetime
-    /// of the document, as PDFium requires the buffer to remain valid.
-    /// For large PDFs, consider using LoadFromFile instead.
+    /// DEPRECATED: Use LoadFromStreamEx for efficient streaming support.
+    /// This method reads the entire stream content into memory and keeps it for the lifetime
+    /// of the document. For large PDFs, use LoadFromStreamEx or LoadFromFile instead.
     /// </remarks>
     procedure LoadFromStream(AStream: TStream; const APassword: string = '');
+
+    /// <summary>
+    /// Loads a PDF document from a stream with true streaming support (recommended)
+    /// </summary>
+    /// <remarks>
+    /// This method uses PDFium's custom file access API for efficient streaming.
+    /// The stream is NOT loaded entirely into memory - PDFium reads blocks on demand.
+    /// The stream must remain valid and seekable for the lifetime of the document.
+    /// Ideal for large PDFs, network streams, or memory-constrained scenarios.
+    /// </remarks>
+    /// <param name="AStream">Source stream (must support seeking)</param>
+    /// <param name="AOwnsStream">If true, the document takes ownership and will free the stream on Close</param>
+    /// <param name="APassword">Optional password for encrypted PDFs</param>
+    procedure LoadFromStreamEx(AStream: TStream; AOwnsStream: Boolean = False; const APassword: string = '');
 
     /// <summary>
     /// Closes the currently loaded document
@@ -198,6 +233,58 @@ implementation
 uses
   System.Math;
 
+{ TPdfStreamAdapter }
+
+constructor TPdfStreamAdapter.Create(AStream: TStream; AOwnsStream: Boolean);
+begin
+  inherited Create;
+  FStream := AStream;
+  FOwnsStream := AOwnsStream;
+
+  // Initialize FPDF_FILEACCESS structure
+  FFileAccess.m_FileLen := FStream.Size;
+  FFileAccess.m_GetBlock := GetBlockCallback;
+  FFileAccess.m_Param := Self;  // Pass Self as user data to callback
+end;
+
+destructor TPdfStreamAdapter.Destroy;
+begin
+  if FOwnsStream then
+    FStream.Free;
+  inherited;
+end;
+
+class function TPdfStreamAdapter.GetBlockCallback(param: Pointer; position: Cardinal;
+  pBuf: PByte; size: Cardinal): Integer;
+var
+  LAdapter: TPdfStreamAdapter;
+  LBytesRead: Integer;
+begin
+  Result := 0;  // Default: error
+
+  if param = nil then
+    Exit;
+
+  LAdapter := TPdfStreamAdapter(param);
+
+  try
+    // Seek to requested position
+    LAdapter.FStream.Position := position;
+
+    // Read requested block
+    LBytesRead := LAdapter.FStream.Read(pBuf^, size);
+
+    // Return success if we read the expected amount
+    if LBytesRead = Integer(size) then
+      Result := 1  // Success
+    else
+      Result := 0; // Error: couldn't read full block
+  except
+    // Any exception = error
+    Result := 0;
+  end;
+end;
+
 { TPdfLibrary }
 
 class constructor TPdfLibrary.Create;
@@ -256,6 +343,7 @@ begin
   FPageCount := 0;
   FFileName := '';
   SetLength(FMemoryBuffer, 0);
+  FStreamAdapter := nil;
   TPdfLibrary.Initialize;
 end;
 
@@ -328,6 +416,38 @@ begin
   FPageCount := FPDF_GetPageCount(FHandle);
 end;
 
+procedure TPdfDocument.LoadFromStreamEx(AStream: TStream; AOwnsStream: Boolean; const APassword: string);
+var
+  LPasswordAnsi: AnsiString;
+  LError: Cardinal;
+begin
+  Close;
+
+  if AStream = nil then
+    raise EPdfLoadException.Create('Stream is nil');
+
+  // Create stream adapter for PDFium's custom file access
+  FStreamAdapter := TPdfStreamAdapter.Create(AStream, AOwnsStream);
+
+  if APassword <> '' then
+    LPasswordAnsi := AnsiString(APassword)
+  else
+    LPasswordAnsi := '';
+
+  // Load using custom document API - enables true streaming!
+  FHandle := FPDF_LoadCustomDocument(@FStreamAdapter.FFileAccess, FPDF_BYTESTRING(PAnsiChar(LPasswordAnsi)));
+
+  if FHandle = nil then
+  begin
+    LError := FPDF_GetLastError;
+    FreeAndNil(FStreamAdapter);  // Clean up on error
+    raise EPdfLoadException.CreateFmt('Failed to load PDF from stream: %s', [FPDF_ErrorToString(LError)]);
+  end;
+
+  FFileName := '';
+  FPageCount := FPDF_GetPageCount(FHandle);
+end;
+
 procedure TPdfDocument.Close;
 begin
   if FHandle <> nil then
@@ -338,6 +458,7 @@ begin
     FFileName := '';
   end;
   SetLength(FMemoryBuffer, 0); // Free memory buffer
+  FreeAndNil(FStreamAdapter);   // Free stream adapter (and optionally the stream)
 end;
 
 function TPdfDocument.IsLoaded: Boolean;

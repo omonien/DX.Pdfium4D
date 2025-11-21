@@ -83,6 +83,21 @@ type
 
     [Test]
     procedure TestLoadFromStreamMultiplePages;
+
+    [Test]
+    procedure TestLoadFromStreamEx;
+
+    [Test]
+    procedure TestLoadFromStreamExWithOwnership;
+
+    [Test]
+    procedure TestLoadFromStreamExSeekable;
+
+    [Test]
+    procedure TestLoadFromStreamExLargeFile;
+
+    [Test]
+    procedure TestStreamAdapterCallback;
   end;
 
 implementation
@@ -438,6 +453,177 @@ begin
     finally
       LPage.Free;
     end;
+  finally
+    LStream.Free;
+    LDocument.Free;
+  end;
+end;
+
+procedure TPdfDocumentTests.TestLoadFromStreamEx;
+var
+  LDocument: TPdfDocument;
+  LStream: TMemoryStream;
+  LVersion: Integer;
+begin
+  LDocument := TPdfDocument.Create;
+  LStream := TMemoryStream.Create;
+  try
+    // Load PDF into stream
+    LStream.LoadFromFile(FTestPdfPath);
+    LStream.Position := 0;
+
+    // Load from stream using streaming API (stream is NOT owned)
+    LDocument.LoadFromStreamEx(LStream, False);
+
+    Assert.IsTrue(LDocument.IsLoaded, 'Document should be loaded from stream');
+    Assert.AreEqual(1, LDocument.PageCount, 'Page count should be 1');
+
+    // Check PDF version
+    LVersion := LDocument.GetFileVersion;
+    Assert.AreEqual(14, LVersion, 'PDF version should be 1.4 (14)');
+
+    // Stream should still be valid (not owned by document)
+    Assert.IsNotNull(LStream, 'Stream should still exist');
+  finally
+    LStream.Free;  // We free it because we didn't transfer ownership
+    LDocument.Free;
+  end;
+end;
+
+procedure TPdfDocumentTests.TestLoadFromStreamExWithOwnership;
+var
+  LDocument: TPdfDocument;
+  LStream: TMemoryStream;
+  LPage: TPdfPage;
+begin
+  LDocument := TPdfDocument.Create;
+  LStream := TMemoryStream.Create;
+
+  // Load PDF into stream
+  LStream.LoadFromFile(FTestPdfPath);
+  LStream.Position := 0;
+
+  // Load from stream with ownership transfer
+  LDocument.LoadFromStreamEx(LStream, True);  // Document now owns the stream!
+
+  try
+    Assert.IsTrue(LDocument.IsLoaded, 'Document should be loaded');
+
+    // Access a page to verify streaming works
+    LPage := LDocument.GetPageByIndex(0);
+    try
+      Assert.IsNotNull(LPage, 'Page should not be nil');
+      Assert.IsTrue(LPage.Width > 0, 'Page width should be greater than 0');
+    finally
+      LPage.Free;
+    end;
+  finally
+    LDocument.Free;  // This will also free the stream
+    // DO NOT free LStream here - it's owned by the document!
+  end;
+end;
+
+procedure TPdfDocumentTests.TestLoadFromStreamExSeekable;
+var
+  LDocument: TPdfDocument;
+  LStream: TMemoryStream;
+  LPage1, LPage2: TPdfPage;
+  LInitialPosition: Int64;
+begin
+  LDocument := TPdfDocument.Create;
+  LStream := TMemoryStream.Create;
+  try
+    // Load PDF into stream
+    LStream.LoadFromFile(FTestPdfPath);
+    LInitialPosition := LStream.Position;
+
+    // Load from stream
+    LDocument.LoadFromStreamEx(LStream, False);
+
+    // Verify that PDFium can seek in the stream by accessing pages multiple times
+    LPage1 := LDocument.GetPageByIndex(0);
+    try
+      Assert.IsNotNull(LPage1, 'First page access should succeed');
+    finally
+      LPage1.Free;
+    end;
+
+    // Access same page again - requires seeking back
+    LPage2 := LDocument.GetPageByIndex(0);
+    try
+      Assert.IsNotNull(LPage2, 'Second page access should succeed (requires seeking)');
+    finally
+      LPage2.Free;
+    end;
+  finally
+    LStream.Free;
+    LDocument.Free;
+  end;
+end;
+
+procedure TPdfDocumentTests.TestLoadFromStreamExLargeFile;
+var
+  LDocument: TPdfDocument;
+  LStream: TMemoryStream;
+  LPage: TPdfPage;
+  LStreamSizeBefore: Int64;
+begin
+  LDocument := TPdfDocument.Create;
+  LStream := TMemoryStream.Create;
+  try
+    // Load PDF into stream
+    LStream.LoadFromFile(FTestPdfPath);
+    LStreamSizeBefore := LStream.Size;
+
+    // Load using streaming API - should NOT duplicate memory
+    LDocument.LoadFromStreamEx(LStream, False);
+
+    // Verify stream is still the same size (not duplicated)
+    Assert.AreEqual(LStreamSizeBefore, LStream.Size, 'Stream size should not change');
+
+    // Verify we can still access the document
+    Assert.IsTrue(LDocument.IsLoaded, 'Document should be loaded');
+
+    LPage := LDocument.GetPageByIndex(0);
+    try
+      Assert.IsNotNull(LPage, 'Should be able to access page via streaming');
+    finally
+      LPage.Free;
+    end;
+  finally
+    LStream.Free;
+    LDocument.Free;
+  end;
+end;
+
+procedure TPdfDocumentTests.TestStreamAdapterCallback;
+var
+  LDocument: TPdfDocument;
+  LStream: TMemoryStream;
+  LPage: TPdfPage;
+  LCallbackExecuted: Boolean;
+begin
+  LDocument := TPdfDocument.Create;
+  LStream := TMemoryStream.Create;
+  try
+    // Load PDF into stream
+    LStream.LoadFromFile(FTestPdfPath);
+
+    // Load using streaming API
+    LDocument.LoadFromStreamEx(LStream, False);
+
+    // Access a page - this should trigger the GetBlock callback
+    LPage := LDocument.GetPageByIndex(0);
+    try
+      // If we got here, the callback worked
+      Assert.IsNotNull(LPage, 'Page should be loaded via callback');
+      Assert.IsTrue(LPage.Width > 0, 'Page should have valid dimensions');
+      LCallbackExecuted := True;
+    finally
+      LPage.Free;
+    end;
+
+    Assert.IsTrue(LCallbackExecuted, 'Stream adapter callback should have been executed');
   finally
     LStream.Free;
     LDocument.Free;

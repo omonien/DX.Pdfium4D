@@ -150,6 +150,19 @@ type
     V8EmbedderSlot: Cardinal;
   end;
 
+  // Callback function for custom file access
+  // Returns non-zero if successful, zero for error
+  TFPDFFileAccessGetBlock = function(param: Pointer; position: Cardinal;
+    pBuf: PByte; size: Cardinal): Integer; cdecl;
+
+  // Structure for custom file access (streaming support)
+  PFPDF_FILEACCESS = ^FPDF_FILEACCESS;
+  FPDF_FILEACCESS = record
+    m_FileLen: Cardinal;        // Total file length in bytes
+    m_GetBlock: TFPDFFileAccessGetBlock;  // Callback to read data blocks
+    m_Param: Pointer;           // Custom user data passed to callback
+  end;
+
 // Library initialization and cleanup
 procedure FPDF_InitLibrary; cdecl; external PDFIUM_DLL;
 procedure FPDF_InitLibraryWithConfig(const AConfig: PFPDF_LIBRARY_CONFIG); cdecl; external PDFIUM_DLL;
@@ -161,6 +174,7 @@ function FPDF_GetLastError: Cardinal; cdecl; external PDFIUM_DLL;
 // Document functions
 function FPDF_LoadDocument(const AFilePath: FPDF_STRING; const APassword: FPDF_BYTESTRING): FPDF_DOCUMENT; cdecl; external PDFIUM_DLL;
 function FPDF_LoadMemDocument(const ADataBuf: Pointer; ASize: Integer; const APassword: FPDF_BYTESTRING): FPDF_DOCUMENT; cdecl; external PDFIUM_DLL;
+function FPDF_LoadCustomDocument(pFileAccess: PFPDF_FILEACCESS; const APassword: FPDF_BYTESTRING): FPDF_DOCUMENT; cdecl; external PDFIUM_DLL;
 procedure FPDF_CloseDocument(ADocument: FPDF_DOCUMENT); cdecl; external PDFIUM_DLL;
 function FPDF_GetPageCount(ADocument: FPDF_DOCUMENT): Integer; cdecl; external PDFIUM_DLL;
 function FPDF_GetFileVersion(ADocument: FPDF_DOCUMENT; var AFileVersion: Integer): FPDF_BOOL; cdecl; external PDFIUM_DLL;
