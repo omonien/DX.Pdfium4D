@@ -43,11 +43,13 @@ type
   private
     FCore: TPdfViewerCore;
     FImage: TImage;
+    FScroll: TScrollBar;
     FLoadingPanel: TPanel;
     FLoadingLabel: TLabel;
     FLoadingArc: TArc;
     FRenderTask: ITask;
     FHLRect: TRectF;
+    procedure FOnChangeScroll(Sender: TObject);
     function GetCurrentPageIndex: Integer;
     procedure SetCurrentPageIndex(const AValue: Integer);
     function GetBackgroundColor: TAlphaColor;
@@ -61,10 +63,12 @@ type
     procedure RenderPageInBackground;
     procedure OnRenderComplete(ABitmap: FMX.Graphics.TBitmap);
     procedure CreateImage;
+    procedure CreateScroll;
     procedure CreateLoadingIndicator;
     procedure DoShowLoadingIndicatorInternal(AShow: Boolean);
     function GetCurrentPage: TPdfPage;
   protected
+    procedure DocChanged;
     procedure Resize; override;
     procedure Paint; override;
     procedure KeyDown(var Key: Word; var KeyChar: WideChar; Shift: TShiftState); override;
@@ -311,6 +315,7 @@ begin
   TabStop := True;
 
   CreateImage;
+  CreateScroll;
   CreateLoadingIndicator;
 end;
 
@@ -396,6 +401,20 @@ begin
   end;
 end;
 
+procedure TPdfViewer.CreateScroll;
+begin
+  if FScroll = nil then
+  begin
+    FScroll := TScrollBar.Create(Self);
+    FScroll.Parent := Self;
+    FScroll.Align := TAlignLayout.Right;
+    FScroll.HitTest := False;
+    FScroll.Orientation := TOrientation.Vertical;
+    FScroll.Width := 20;
+    FScroll.OnChange := FOnChangeScroll;
+  end;
+end;
+
 procedure TPdfViewer.CreateLoadingIndicator;
 begin
   // Create semi-transparent panel as background
@@ -439,11 +458,13 @@ end;
 procedure TPdfViewer.LoadFromFile(const AFileName: string; const APassword: string);
 begin
   FCore.LoadFromFile(AFileName, APassword);
+  DocChanged;
 end;
 
 procedure TPdfViewer.LoadFromStream(AStream: TStream; AOwnsStream: Boolean; const APassword: string);
 begin
   FCore.LoadFromStream(AStream, AOwnsStream, APassword);
+  DocChanged;
 end;
 
 procedure TPdfViewer.Close;
@@ -451,6 +472,7 @@ begin
   FCore.Close;
   if FImage <> nil then
     FImage.Bitmap.Clear(FCore.BackgroundColor);
+  DocChanged;
   Repaint;
 end;
 
@@ -603,6 +625,11 @@ begin
   FCore.FirstPage;
 end;
 
+procedure TPdfViewer.FOnChangeScroll(Sender: TObject);
+begin
+  SetCurrentPageIndex(Trunc(FScroll.Value));
+end;
+
 procedure TPdfViewer.LastPage;
 begin
   FCore.LastPage;
@@ -677,7 +704,19 @@ begin
   else if WheelDelta < 0 then
     NextPage;
 
+  if Assigned(FScroll) then
+    FScroll.Value := CurrentPageIndex;
   Handled := True;
+end;
+
+procedure TPdfViewer.DocChanged;
+begin
+  if Assigned(FScroll) then
+  begin
+    FScroll.Max := PageCount;
+    FScroll.Min := 0;
+    FScroll.Value := CurrentPageIndex;
+  end;
 end;
 
 procedure TPdfViewer.DoShowLoadingIndicatorInternal(AShow: Boolean);
