@@ -65,7 +65,7 @@ type
     procedure Resize; override;
     procedure Paint; override;
     procedure KeyDown(var Key: Word; Shift: TShiftState); override;
-    procedure MouseWheel(Shift: TShiftState; WheelDelta: Integer; var Handled: Boolean); override;
+    function DoMouseWheel(Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint): Boolean; override;
     procedure WMEraseBkgnd(var Message: TWMEraseBkgnd); message WM_ERASEBKGND;
   public
     constructor Create(AOwner: TComponent); override;
@@ -466,9 +466,9 @@ begin
   end;
 end;
 
-procedure TPdfViewer.MouseWheel(Shift: TShiftState; WheelDelta: Integer; var Handled: Boolean);
+function TPdfViewer.DoMouseWheel(Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint): Boolean;
 begin
-  inherited;
+  Result := inherited DoMouseWheel(Shift, WheelDelta, MousePos);
 
   if not IsDocumentLoaded then
     Exit;
@@ -480,7 +480,7 @@ begin
   else if WheelDelta < 0 then
     NextPage;
 
-  Handled := True;
+  Result := True;
 end;
 
 procedure TPdfViewer.DoShowLoadingIndicatorInternal(AShow: Boolean);
@@ -495,17 +495,17 @@ end;
 
 procedure TPdfViewer.RenderPageInBackground;
 var
-  LCoreFMX: TPdfViewerCoreVCL;
+  LCoreVCL: TPdfViewerCoreVCL;
   LCurrentPage: TPdfPage;
   LPageIndex: Integer;
   LRenderWidth: Integer;
   LRenderHeight: Integer;
   LBackgroundColor: TAlphaColor;
 begin
-  LCoreFMX := TPdfViewerCoreVCL(FCore);
+  LCoreVCL := TPdfViewerCoreVCL(FCore);
 
   // Check if already rendering
-  if LCoreFMX.GetIsRendering then
+  if LCoreVCL.GetIsRendering then
     Exit;
 
   // Check if document is loaded
@@ -520,7 +520,7 @@ begin
   DoShowLoadingIndicatorInternal(FCore.ShowLoadingIndicator);
 
   // Mark as rendering
-  LCoreFMX.SetIsRendering(True);
+  LCoreVCL.SetIsRendering(True);
 
   // Calculate render size (use control size)
   LRenderWidth := Max(1, Width);
@@ -528,12 +528,12 @@ begin
   LBackgroundColor := FCore.BackgroundColor;
 
   // Load page in main thread (PDFium requires this)
-  LCoreFMX.SetCurrentPage(FCore.Document.GetPageByIndex(LPageIndex));
-  LCurrentPage := LCoreFMX.GetCurrentPage;
+  LCoreVCL.SetCurrentPage(FCore.Document.GetPageByIndex(LPageIndex));
+  LCurrentPage := LCoreVCL.GetCurrentPage;
 
   if LCurrentPage = nil then
   begin
-    LCoreFMX.SetIsRendering(False);
+    LCoreVCL.SetIsRendering(False);
     DoShowLoadingIndicatorInternal(False);
     Exit;
   end;
@@ -553,17 +553,17 @@ begin
         LCurrentPage.RenderToBitmap(LTempBitmap, LBackgroundColor);
 
         // Switch back to main thread to update UI
-        TThread.Queue(TThread.Current,
+        TThread.Queue(nil,
           procedure
           begin
             OnRenderComplete(LTempBitmap);
           end);
       except
         LTempBitmap.Free;
-        TThread.Queue(TThread.Current,
+        TThread.Queue(nil,
           procedure
           begin
-            LCoreFMX.SetIsRendering(False);
+            LCoreVCL.SetIsRendering(False);
             DoShowLoadingIndicatorInternal(False);
           end);
       end;

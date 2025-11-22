@@ -1,4 +1,4 @@
-{*******************************************************************************
+﻿{*******************************************************************************
   Project: DX.PdfViewerVCL
 
   Part of DX Pdfium4D - Delphi Cross-Platform Wrapper für Pdfium
@@ -21,7 +21,8 @@ uses
   DX.Pdf.API in '..\DX.Pdf.API.pas',
   DX.Pdf.Document in '..\DX.Pdf.Document.pas',
   DX.Pdf.Viewer.Core in '..\DX.Pdf.Viewer.Core.pas',
-  DX.Pdf.Viewer.VCL in '..\DX.Pdf.Viewer.VCL.pas';
+  DX.Pdf.Viewer.VCL in '..\DX.Pdf.Viewer.VCL.pas',
+  DX.Pdf.Renderer.VCL in '..\DX.Pdf.Renderer.VCL.pas';
 
 {$R *.res}
 
