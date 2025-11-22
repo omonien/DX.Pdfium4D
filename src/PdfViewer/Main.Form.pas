@@ -1,4 +1,4 @@
-{*******************************************************************************
+﻿{*******************************************************************************
   Unit: Main.Form
 
   Part of DX Pdfium4D - Delphi Cross-Platform Wrapper für Pdfium
@@ -40,6 +40,8 @@ type
     StatusBar: TStatusBar;
     StatusLabel: TLabel;
     PageLabel: TLabel;
+    ButtonSearch: TButton;
+    procedure ButtonSearchClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure DropPanelClick(Sender: TObject);
@@ -67,8 +69,31 @@ var
   MainForm: TMainForm;
 
 implementation
+uses
+  FMX.DialogService.Async;
 
 {$R *.fmx}
+
+procedure TMainForm.ButtonSearchClick(Sender: TObject);
+begin
+  var Page := FPdfViewer.CurrentPage;
+  if not Assigned(Page) then
+    Exit;
+  TDialogServiceAsync.InputQuery('Search', ['Input serach text'], [''],
+    procedure(const AResult: TModalResult; const AValues: array of string)
+    begin
+      if AResult <> mrOk then
+        Exit;
+      if AValues[0].IsEmpty then
+        Exit;
+      var Search := Page.FindStart(AValues[0], 0, 0);
+      if Search.FindNext then
+        FPdfViewer.HighlightRect(Page.GetCharBox(Search.GetResultIndex))
+      else
+        FPdfViewer.HighlightRect(TRectF.Empty);
+      FPdfViewer.Rerender;
+    end);
+end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin

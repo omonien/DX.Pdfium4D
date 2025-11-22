@@ -27,7 +27,7 @@ object MainForm: TMainForm
       Margins.Top = 2.000000000000000000
       Margins.Right = 5.000000000000000000
       Margins.Bottom = 2.000000000000000000
-      Size.Width = 615.000000000000000000
+      Size.Width = 535.000000000000000000
       Size.Height = 18.000000000000000000
       Size.PlatformDefault = False
       TextSettings.Font.Size = 11.000000000000000000
@@ -52,6 +52,13 @@ object MainForm: TMainForm
       TextSettings.Font.Size = 11.000000000000000000
       TextSettings.HorzAlign = Trailing
       TabOrder = 1
+    end
+    object ButtonSearch: TButton
+      Align = Right
+      Position.X = 545.000000000000000000
+      TabOrder = 2
+      Text = 'Search'
+      OnClick = ButtonSearchClick
     end
   end
   object DropPanel: TPanel
