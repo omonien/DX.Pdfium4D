@@ -1,4 +1,4 @@
-{*******************************************************************************
+﻿{*******************************************************************************
   Unit: DX.Pdf.Viewer.Core
 
   Part of DX Pdfium4D - Delphi Cross-Platform Wrapper für Pdfium
@@ -67,11 +67,6 @@ type
     /// Triggers page rendering
     /// </summary>
     procedure RenderCurrentPage;
-
-    /// <summary>
-    /// Current page object (can be nil)
-    /// </summary>
-    property CurrentPage: TPdfPage read FCurrentPage write FCurrentPage;
 
     /// <summary>
     /// Flag indicating if rendering is in progress
@@ -144,6 +139,11 @@ type
     /// The PDF document object
     /// </summary>
     property Document: TPdfDocument read FDocument;
+
+    /// <summary>
+    /// Current page object (can be nil)
+    /// </summary>
+    property CurrentPage: TPdfPage read FCurrentPage write FCurrentPage;
 
     /// <summary>
     /// Background color for the viewer

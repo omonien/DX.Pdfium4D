@@ -1,4 +1,4 @@
-{*******************************************************************************
+﻿{*******************************************************************************
   Unit: DX.Pdf.Viewer.FMX
 
   Part of DX Pdfium4D - Delphi Cross-Platform Wrapper für Pdfium
@@ -43,10 +43,13 @@ type
   private
     FCore: TPdfViewerCore;
     FImage: TImage;
+    FScroll: TScrollBar;
     FLoadingPanel: TPanel;
     FLoadingLabel: TLabel;
     FLoadingArc: TArc;
     FRenderTask: ITask;
+    FHLRect: TRectF;
+    procedure FOnChangeScroll(Sender: TObject);
     function GetCurrentPageIndex: Integer;
     procedure SetCurrentPageIndex(const AValue: Integer);
     function GetBackgroundColor: TAlphaColor;
@@ -60,9 +63,12 @@ type
     procedure RenderPageInBackground;
     procedure OnRenderComplete(ABitmap: FMX.Graphics.TBitmap);
     procedure CreateImage;
+    procedure CreateScroll;
     procedure CreateLoadingIndicator;
     procedure DoShowLoadingIndicatorInternal(AShow: Boolean);
+    function GetCurrentPage: TPdfPage;
   protected
+    procedure DocChanged;
     procedure Resize; override;
     procedure Paint; override;
     procedure KeyDown(var Key: Word; var KeyChar: WideChar; Shift: TShiftState); override;
@@ -124,6 +130,11 @@ type
     /// The PDF document object
     /// </summary>
     property Document: TPdfDocument read GetDocument;
+
+    /// <summary>
+    ///  Get current page
+    /// </summary>
+    property CurrentPage: TPdfPage read GetCurrentPage;
   published
     /// <summary>
     /// Current page index (0-based)
@@ -149,6 +160,9 @@ type
     /// Event fired when the current page changes
     /// </summary>
     property OnPageChanged: TNotifyEvent read GetOnPageChanged write SetOnPageChanged;
+
+    procedure HighlightRect(ARect: TRectF);
+    procedure Rerender;
 
     // Inherited published properties
     property Align;
@@ -222,6 +236,30 @@ type
     procedure CallRenderCurrentPage;
   end;
 
+function ConvertPDFToRenderedRect(const CanvasRect: TRectF;
+                                 PageWidth, PageHeight: Double;
+                                 const RenderedBounds: TRectF;
+                                 CanvasDPI: Integer = 96): TRectF;
+var
+  ScaleX, ScaleY: Single;
+  ExpectedWidth, ExpectedHeight: Single;
+  RenderedWidth, RenderedHeight: Single;
+begin
+  ExpectedWidth := PageWidth * CanvasDPI / 72.0;
+  ExpectedHeight := PageHeight * CanvasDPI / 72.0;
+
+  RenderedWidth := RenderedBounds.Width;
+  RenderedHeight := RenderedBounds.Height;
+
+  ScaleX := RenderedWidth / ExpectedWidth;
+  ScaleY := RenderedHeight / ExpectedHeight;
+
+  Result.Left := CanvasRect.Left * ScaleX + RenderedBounds.Left;
+  Result.Top := CanvasRect.Top * ScaleY + RenderedBounds.Top;
+  Result.Right := CanvasRect.Right * ScaleX + RenderedBounds.Left;
+  Result.Bottom := CanvasRect.Bottom * ScaleY + RenderedBounds.Top;
+end;
+
 { TPdfViewerCoreFMX }
 
 constructor TPdfViewerCoreFMX.Create(AViewer: TPdfViewer);
@@ -277,6 +315,7 @@ begin
   TabStop := True;
 
   CreateImage;
+  CreateScroll;
   CreateLoadingIndicator;
 end;
 
@@ -287,6 +326,11 @@ begin
   FreeAndNil(FLoadingPanel);
   FreeAndNil(FCore);
   inherited;
+end;
+
+function TPdfViewer.GetCurrentPage: TPdfPage;
+begin
+  Result := FCore.CurrentPage;
 end;
 
 function TPdfViewer.GetCurrentPageIndex: Integer;
@@ -312,6 +356,11 @@ end;
 function TPdfViewer.GetShowLoadingIndicator: Boolean;
 begin
   Result := FCore.ShowLoadingIndicator;
+end;
+
+procedure TPdfViewer.HighlightRect(ARect: TRectF);
+begin
+  FHLRect := ARect;
 end;
 
 procedure TPdfViewer.SetShowLoadingIndicator(const AValue: Boolean);
@@ -349,6 +398,20 @@ begin
     FImage.HitTest := False;
     // Use Center mode to display bitmap at exact size without scaling
     FImage.WrapMode := TImageWrapMode.Center;
+  end;
+end;
+
+procedure TPdfViewer.CreateScroll;
+begin
+  if FScroll = nil then
+  begin
+    FScroll := TScrollBar.Create(Self);
+    FScroll.Parent := Self;
+    FScroll.Align := TAlignLayout.Right;
+    FScroll.HitTest := False;
+    FScroll.Orientation := TOrientation.Vertical;
+    FScroll.Width := 20;
+    FScroll.OnChange := FOnChangeScroll;
   end;
 end;
 
@@ -395,11 +458,13 @@ end;
 procedure TPdfViewer.LoadFromFile(const AFileName: string; const APassword: string);
 begin
   FCore.LoadFromFile(AFileName, APassword);
+  DocChanged;
 end;
 
 procedure TPdfViewer.LoadFromStream(AStream: TStream; AOwnsStream: Boolean; const APassword: string);
 begin
   FCore.LoadFromStream(AStream, AOwnsStream, APassword);
+  DocChanged;
 end;
 
 procedure TPdfViewer.Close;
@@ -407,6 +472,7 @@ begin
   FCore.Close;
   if FImage <> nil then
     FImage.Bitmap.Clear(FCore.BackgroundColor);
+  DocChanged;
   Repaint;
 end;
 
@@ -510,9 +576,28 @@ begin
     end);
 end;
 
+procedure TPdfViewer.Rerender;
+begin
+  RenderPageInBackground;
+end;
+
 procedure TPdfViewer.OnRenderComplete(ABitmap: FMX.Graphics.TBitmap);
 begin
   try
+    // test show selection
+    if FHLRect <> TRectF.Empty then
+    begin
+      ABitmap.Canvas.BeginScene;
+      try
+        var Page := GetDocument.GetPageByIndex(CurrentPageIndex);
+        var R := ConvertPDFToRenderedRect(FHLRect, Page.Width, Page.Height, TRectF.Create(0, 0, ABitmap.Width, ABitmap.Height));
+        ABitmap.Canvas.Fill.Kind := TBrushKind.Solid;
+        ABitmap.Canvas.Fill.Color := TAlphaColorRec.Red;
+        ABitmap.Canvas.FillRect(R, 0.5);
+      finally
+        ABitmap.Canvas.EndScene;
+      end;
+    end;
     // Swap bitmaps (fast operation in main thread)
     FImage.Bitmap.Assign(ABitmap);
 
@@ -538,6 +623,11 @@ end;
 procedure TPdfViewer.FirstPage;
 begin
   FCore.FirstPage;
+end;
+
+procedure TPdfViewer.FOnChangeScroll(Sender: TObject);
+begin
+  SetCurrentPageIndex(Trunc(FScroll.Value));
 end;
 
 procedure TPdfViewer.LastPage;
@@ -614,7 +704,19 @@ begin
   else if WheelDelta < 0 then
     NextPage;
 
+  if Assigned(FScroll) then
+    FScroll.Value := CurrentPageIndex;
   Handled := True;
+end;
+
+procedure TPdfViewer.DocChanged;
+begin
+  if Assigned(FScroll) then
+  begin
+    FScroll.Max := PageCount;
+    FScroll.Min := 0;
+    FScroll.Value := CurrentPageIndex;
+  end;
 end;
 
 procedure TPdfViewer.DoShowLoadingIndicatorInternal(AShow: Boolean);
