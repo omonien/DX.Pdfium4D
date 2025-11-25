@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/omonien/DX-Pdfium4D/blob/main/LICENSE">
+  <a href="https://github.com/omonien/DX.Pdfium4D/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
   </a>
   <a href="https://www.embarcadero.com/products/delphi">
@@ -139,13 +139,13 @@ The project includes **DX PDF Viewer** demo applications for both **FireMonkey (
 #### Option 1: Clone the Repository
 
 ```bash
-git clone https://github.com/omonien/DX-Pdfium4D.git
-cd DX-Pdfium4D
+git clone https://github.com/omonien/DX.Pdfium4D.git
+cd DX.Pdfium4D
 ```
 
 #### Option 2: Download Release
 
-Download the latest release from the [Releases](https://github.com/omonien/DX-Pdfium4D/releases) page.
+Download the latest release from the [Releases](https://github.com/omonien/DX.Pdfium4D/releases) page.
 
 ### Quick Start
 
@@ -286,7 +286,7 @@ The status bar displays:
 ## Project Structure
 
 ```
-DX-Pdfium4D/
+DX.Pdfium4D/
 ├── src/                          # Source code
 │   ├── DX.Pdf.API.pas           # Low-level PDFium C-API bindings
 │   ├── DX.Pdf.Document.pas      # High-level document/page classes
@@ -450,7 +450,7 @@ Contributions are welcome! We appreciate your help in making DX Pdfium4D better.
 
 If you find a bug or have a feature request:
 
-1. Check if the issue already exists in [Issues](https://github.com/omonien/DX-Pdfium4D/issues)
+1. Check if the issue already exists in [Issues](https://github.com/omonien/DX.Pdfium4D/issues)
 2. If not, create a new issue with:
    - Clear description of the problem/feature
    - Steps to reproduce (for bugs)
