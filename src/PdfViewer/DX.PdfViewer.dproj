@@ -103,10 +103,10 @@
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <VerInfo_AutoGenVersion>true</VerInfo_AutoGenVersion>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=Olaf Monien;FileDescription=DX PDF Viewer - Example application for DX Pdfium4D wrapper;FileVersion=1.0.0.0;InternalName=DX.PdfViewer;LegalCopyright=(c) 2025 Olaf Monien;LegalTrademarks=;OriginalFilename=DX.PdfViewer.exe;ProductName=DX PDF Viewer;ProductVersion=1.0.0.0;Comments=Cross-platform PDF viewer demonstrating DX Pdfium4D wrapper;CFBundleIdentifier=net.developer-experts.pdfium4d.viewer</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Olaf Monien;FileDescription=DX PDF Viewer - Example application for DX Pdfium4D wrapper;FileVersion=1.3.0.0;InternalName=DX.PdfViewer;LegalCopyright=(c) 2025 Olaf Monien;LegalTrademarks=;OriginalFilename=DX.PdfViewer.exe;ProductName=DX PDF Viewer;ProductVersion=1.3.0.0;Comments=Cross-platform PDF viewer demonstrating DX Pdfium4D wrapper;CFBundleIdentifier=net.developer-experts.pdfium4d.viewer</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_MajorVer>1</VerInfo_MajorVer>
-        <VerInfo_MinorVer>0</VerInfo_MinorVer>
+        <VerInfo_MinorVer>3</VerInfo_MinorVer>
         <VerInfo_Release>0</VerInfo_Release>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android)'!=''">
@@ -206,7 +206,7 @@
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
         <VerInfo_AutoGenVersion>true</VerInfo_AutoGenVersion>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=Olaf Monien;FileDescription=DX PDF Viewer - Example application for DX Pdfium4D wrapper;FileVersion=1.0.0.0;InternalName=DX.PdfViewer;LegalCopyright=(c) 2025 Olaf Monien;LegalTrademarks=;OriginalFilename=DX.PdfViewer.exe;ProgramID=net.developer-experts.pdfium4d.viewer;ProductName=DX PDF Viewer;ProductVersion=1.0.0.0;Comments=Cross-platform PDF viewer demonstrating DX Pdfium4D wrapper</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Olaf Monien;FileDescription=DX PDF Viewer - Example application for DX Pdfium4D wrapper;FileVersion=1.3.0.0;InternalName=DX.PdfViewer;LegalCopyright=(c) 2025 Olaf Monien;LegalTrademarks=;OriginalFilename=DX.PdfViewer.exe;ProgramID=net.developer-experts.pdfium4d.viewer;ProductName=DX PDF Viewer;ProductVersion=1.3.0.0;Comments=Cross-platform PDF viewer demonstrating DX Pdfium4D wrapper</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
@@ -217,7 +217,7 @@
         <Icon_MainIcon>$(ProjectName).Artwork\Windows\AppIcon.ico</Icon_MainIcon>
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=Olaf Monien;FileDescription=DX PDF Viewer - Example application for DX Pdfium4D wrapper;FileVersion=1.0.0.0;InternalName=DX.PdfViewer;LegalCopyright=(c) 2025 Olaf Monien;LegalTrademarks=;OriginalFilename=DX.PdfViewer.exe;ProgramID=net.developer-experts.pdfium4d.viewer;ProductName=DX PDF Viewer;ProductVersion=1.0.0.0;Comments=Cross-platform PDF viewer demonstrating DX Pdfium4D wrapper</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Olaf Monien;FileDescription=DX PDF Viewer - Example application for DX Pdfium4D wrapper;FileVersion=1.3.0.0;InternalName=DX.PdfViewer;LegalCopyright=(c) 2025 Olaf Monien;LegalTrademarks=;OriginalFilename=DX.PdfViewer.exe;ProgramID=net.developer-experts.pdfium4d.viewer;ProductName=DX PDF Viewer;ProductVersion=1.3.0.0;Comments=Cross-platform PDF viewer demonstrating DX Pdfium4D wrapper</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_iOSDevice64)'!=''">
@@ -289,7 +289,7 @@
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
-        <VerInfo_Keys>CompanyName=Olaf Monien;FileDescription=DX PDF Viewer - Example application for DX Pdfium4D wrapper;FileVersion=1.0.0.0;InternalName=DX.PdfViewer;LegalCopyright=(c) 2025 Olaf Monien;LegalTrademarks=;OriginalFilename=DX.PdfViewer.exe;ProgramID=net.developer-experts.pdfium4d.viewer;ProductName=DX PDF Viewer;ProductVersion=1.0.0.0;Comments=Cross-platform PDF viewer demonstrating DX Pdfium4D wrapper</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Olaf Monien;FileDescription=DX PDF Viewer - Example application for DX Pdfium4D wrapper;FileVersion=1.3.0.0;InternalName=DX.PdfViewer;LegalCopyright=(c) 2025 Olaf Monien;LegalTrademarks=;OriginalFilename=DX.PdfViewer.exe;ProgramID=net.developer-experts.pdfium4d.viewer;ProductName=DX PDF Viewer;ProductVersion=1.3.0.0;Comments=Cross-platform PDF viewer demonstrating DX Pdfium4D wrapper</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>

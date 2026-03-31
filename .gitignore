@@ -128,6 +128,7 @@ GTAGS
 # PDFium binaries (downloaded, not in Git)
 lib/pdfium-bin/*.tgz
 lib/pdfium-bin/bin/
+lib/pdfium-bin/cache/
 lib/pdfium-bin/lib/
 lib/pdfium-bin/include/
 lib/pdfium-bin/licenses/
