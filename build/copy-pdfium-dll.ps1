@@ -76,15 +76,15 @@ if ($NeedDownload) {
 Write-Host "Extracting pdfium.dll..." -ForegroundColor Yellow
 
 # Extract bin/pdfium.dll from the archive into lib/pdfium-bin/
-Push-Location $PdfiumBinDir
-try {
-    tar xzf $CachedArchive "bin/pdfium.dll" 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: Extraction failed!" -ForegroundColor Red
-        exit 1
-    }
-} finally {
-    Pop-Location
+$BinDir = Join-Path $PdfiumBinDir "bin"
+if (-not (Test-Path $BinDir)) {
+    New-Item -ItemType Directory -Path $BinDir -Force | Out-Null
+}
+# Use Windows tar.exe explicitly (Unix tar from Git Bash cannot handle drive letters)
+& "$env:SystemRoot\System32\tar.exe" xzf "$CachedArchive" -C "$PdfiumBinDir" "bin/pdfium.dll"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: Extraction failed!" -ForegroundColor Red
+    exit 1
 }
 
 if (-not (Test-Path $DllSource)) {
