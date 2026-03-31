@@ -122,6 +122,21 @@ type
     /// </summary>
     property Handle: FPDF_PAGE read FHandle;
 
+    /// <summary>
+    /// Internal PDFium text page handle
+    /// </summary>
+    property TextHandle: FPDF_TEXTPAGE read FHandleText;
+
+    /// <summary>
+    /// Returns the number of characters on this page
+    /// </summary>
+    function GetCharCount: Integer;
+
+    /// <summary>
+    /// Extracts text from the page
+    /// </summary>
+    function GetText(AStartIndex: Integer; ACount: Integer): string;
+
     function GetCharBox(const AIndex: Integer): TRectF;
     function GetCharIndexAtPos(const AX, AY, AXTolerance, AYTolerance: Double): Integer;
     function GetCharRect(const AIndex: Integer; var ARect: TRectF): Boolean;
@@ -670,6 +685,20 @@ begin
     Notify();
   FSearchNotifies.Free;
   inherited;
+end;
+
+function TPdfPage.GetCharCount: Integer;
+begin
+  Result := FPDFText_CountChars(FHandleText);
+end;
+
+function TPdfPage.GetText(AStartIndex: Integer; ACount: Integer): string;
+var
+  LBuffer: array of WideChar;
+begin
+  SetLength(LBuffer, ACount + 1);
+  FPDFText_GetText(FHandleText, AStartIndex, ACount, @LBuffer[0]);
+  Result := string(PWideChar(@LBuffer[0]));
 end;
 
 function TPdfPage.FindStart(const AFindwhat: string; const AFlags: DWORD; const AStartIndex: Integer): IPageSearch;

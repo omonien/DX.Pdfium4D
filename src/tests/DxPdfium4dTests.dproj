@@ -167,6 +167,7 @@
         <DCCReference Include="..\DX.Pdf.API.pas"/>
         <DCCReference Include="..\DX.Pdf.Document.pas"/>
         <DCCReference Include="DX.Pdf.Document.Tests.pas"/>
+        <DCCReference Include="DX.Pdf.Extended.Tests.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

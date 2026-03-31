@@ -55,10 +55,7 @@ The project includes **DX PDF Viewer** demo applications for both **FireMonkey (
 
 - [Overview](#overview)
 - [Features](#features)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Quick Start](#quick-start)
+- [Quick Start](#quick-start)
 - [Documentation](#documentation)
 - [Examples](#examples)
 - [Project Structure](#project-structure)
@@ -124,96 +121,80 @@ The project includes **DX PDF Viewer** demo applications for both **FireMonkey (
 
 ---
 
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
-- **Delphi 12 or 13** (recommended and tested)
-  - Tested with Delphi 12.3 Athens and Delphi 13 Florence
-  - Should work with Delphi 10.0 or later (not tested, no guarantee)
-  - Minimum: Delphi 10.0 for FMX and VCL support
-- **PDFium Library** (included in `lib/pdfium-bin`)
+- **Delphi 12 or 13** (tested with Delphi 12.3 Athens and Delphi 13 Florence)
+- **GitHub CLI (`gh`)** - for automatic PDFium download
 
-### Installation
-
-#### Option 1: Clone the Repository
+### 1. Clone and Setup
 
 ```bash
-git clone https://github.com/omonien/DX.Pdfium4D.git
+git clone --recurse-submodules https://github.com/omonien/DX.Pdfium4D.git
 cd DX.Pdfium4D
 ```
 
-#### Option 2: Download Release
+Download the PDFium binary:
 
-Download the latest release from the [Releases](https://github.com/omonien/DX.Pdfium4D/releases) page.
-
-### Quick Start
-
-#### Using the Wrapper in Your Project
-
-1. **Add the wrapper units to your project:**
-   ```pascal
-   uses
-     DX.Pdf.API,          // Low-level PDFium C-API bindings
-     DX.Pdf.Document,     // High-level document/page classes
-     DX.Pdf.Viewer.FMX,   // (Optional) FMX visual component
-     DX.Pdf.Viewer.VCL;   // (Optional) VCL visual component
-   ```
-
-2. **Include PDFium library:**
-   - Copy the appropriate PDFium DLL/dylib/so from `lib/pdfium-bin` to your output directory
-   - Windows: `pdfium.dll`
-   - macOS: `libpdfium.dylib`
-   - Linux: `libpdfium.so`
-
-3. **Load and render a PDF:**
-   ```pascal
-   var
-     LDocument: TPdfDocument;
-     LPage: TPdfPage;
-     LBitmap: TBitmap;
-   begin
-     LDocument := TPdfDocument.Create('document.pdf');
-     try
-       LPage := LDocument.Pages[0];
-       LBitmap := LPage.RenderToBitmap(96); // 96 DPI
-       try
-         // Use the bitmap
-       finally
-         LBitmap.Free;
-       end;
-     finally
-       LDocument.Free;
-     end;
-   end;
-   ```
-
-4. **See the full documentation:**
-   - 📖 **[Using the DX.Pdf Wrapper Classes](USING_DX_PDF.md)**
-
-#### Building the DX PDF Viewer Examples
-
-**FMX Viewer (Cross-Platform):**
-1. Open `src/PdfViewer/DX.PdfViewer.dproj` in Delphi IDE
-2. Press **F9** or select **Run → Run**
-3. The PDFium DLL will be automatically copied to the output directory
-
-**VCL Viewer (Windows):**
-1. Open `src/PdfViewerVCL/DX.PdfViewerVCL.dproj` in Delphi IDE
-2. Press **F9** or select **Run → Run**
-3. The PDFium DLL will be automatically copied to the output directory
-
-**Run from command line:**
-```bash
-# FMX Viewer - Windows
-src\PdfViewer\Win32\Debug\DX.PdfViewer.exe path\to\document.pdf
-
-# FMX Viewer - macOS
-./DX.PdfViewer document.pdf
-
-# VCL Viewer - Windows
-src\PdfViewerVCL\Win32\Debug\DX.PdfViewerVCL.exe path\to\document.pdf
+```powershell
+cd build
+.\copy-pdfium-dll.ps1 -Platform Win64              # Win64 Debug (default)
+.\copy-pdfium-dll.ps1 -Platform Win32              # Win32 Debug
+.\copy-pdfium-dll.ps1 -Platform Win64 -Config Release  # Win64 Release
 ```
+
+The script downloads the latest PDFium release from [bblanchon/pdfium-binaries](https://github.com/bblanchon/pdfium-binaries) and caches it locally.
+
+### 2. Build and Run
+
+**From Delphi IDE:**
+1. Open `src/PdfViewer/DX.PdfViewer.dproj` (FMX) or `src/PdfViewerVCL/DX.PdfViewerVCL.dproj` (VCL)
+2. Press **F9** to build and run
+
+**From command line (PowerShell):**
+```powershell
+cd build
+.\build-tests.ps1 -Run                        # Build and run tests
+.\build-release.ps1 -Version "v1.0.0"         # Build release (FMX + VCL, Win32 + Win64)
+```
+
+All build output goes to `build/<Platform>/<Config>/` (e.g., `build/Win64/Debug/`).
+
+### 3. Use in Your Own Project
+
+```pascal
+uses
+  DX.Pdf.API,          // Low-level PDFium C-API bindings
+  DX.Pdf.Document,     // High-level document/page classes
+  DX.Pdf.Viewer.FMX,   // (Optional) FMX visual component
+  DX.Pdf.Viewer.VCL;   // (Optional) VCL visual component
+```
+
+Ensure `pdfium.dll` is in your output directory, then:
+
+```pascal
+var
+  LDocument: TPdfDocument;
+  LPage: TPdfPage;
+  LBitmap: TBitmap;
+begin
+  LDocument := TPdfDocument.Create('document.pdf');
+  try
+    LPage := LDocument.Pages[0];
+    LBitmap := LPage.RenderToBitmap(96); // 96 DPI
+    try
+      // Use the bitmap
+    finally
+      LBitmap.Free;
+    end;
+  finally
+    LDocument.Free;
+  end;
+end;
+```
+
+For detailed usage see 📖 **[Using the DX.Pdf Wrapper Classes](USING_DX_PDF.md)**
 
 ---
 
@@ -296,28 +277,20 @@ DX.Pdfium4D/
 │   ├── DX.Pdf.Renderer.FMX.pas  # FMX rendering
 │   ├── DX.Pdf.Renderer.VCL.pas  # VCL rendering
 │   ├── PdfViewer/               # FMX demo application
-│   │   ├── DX.PdfViewer.dpr     # Main program file
-│   │   ├── DX.PdfViewer.dproj   # Delphi project file
-│   │   ├── Main.Form.pas        # Main application form
-│   │   └── Main.Form.fmx        # Form layout
 │   ├── PdfViewerVCL/            # VCL demo application
-│   │   ├── DX.PdfViewerVCL.dpr  # Main program file
-│   │   ├── DX.PdfViewerVCL.dproj # Delphi project file
-│   │   ├── Main.Form.pas        # Main application form
-│   │   └── Main.Form.dfm        # Form layout
-│   └── tests/                   # Unit tests
-│       ├── DxPdfium4dTests.dpr    # Test project
-│       ├── DxPdfium4dTests.dproj  # Test project file
-│       └── DX.Pdf.Document.Tests.pas
+│   └── tests/                   # DUnitX unit tests
+├── build/                        # Build scripts and output
+│   ├── DelphiBuildDPROJ.ps1     # Universal Delphi build script
+│   ├── build-tests.ps1          # Build & run unit tests
+│   ├── build-release.ps1        # Build release packages
+│   ├── copy-pdfium-dll.ps1      # Download & copy PDFium DLL
+│   └── <Platform>/<Config>/     # Build output (e.g., Win64/Debug/)
 ├── assets/                       # Icons and logos
-│   ├── Icon.svg                 # Application icon (source)
-│   └── Logo.svg                 # DX Pdfium4D logo
 ├── samples/                      # Sample PDF files for testing
-│   ├── Simple PDF 2.0 file.pdf  # Basic PDF 2.0 example
-│   └── pdf20-utf8-test.pdf      # Complex PDF with UTF-8, bookmarks, layers
-└── lib/                          # Third-party libraries
-    ├── pdfium-bin/              # PDFium binaries
-    └── DUnitX/                  # Unit testing framework
+└── lib/                          # Third-party libraries (Git submodules)
+    ├── pdfium-bin/              # PDFium binary config & cache
+    ├── pdfium-binaries/         # PDFium build scripts (submodule)
+    └── DUnitX/                  # Unit testing framework (submodule)
 ```
 
 
@@ -405,10 +378,11 @@ DX Pdfium4D includes comprehensive unit tests for the PDFium wrapper classes.
 
 ### Running Tests
 
-**Option 1: Batch Script**
-```bash
-cd src\tests
-build-and-run-tests.bat
+**Option 1: PowerShell (recommended)**
+```powershell
+cd build
+.\build-tests.ps1 -Run                     # Win64 Debug (default)
+.\build-tests.ps1 -Platform Win32 -Run     # Win32 Debug
 ```
 
 **Option 2: Delphi IDE**
@@ -418,12 +392,15 @@ build-and-run-tests.bat
 
 ### Test Coverage
 
-- ✅ PDF document loading
+- ✅ Library initialization
+- ✅ PDF document loading (file and stream)
 - ✅ Page count and dimensions
+- ✅ Page indexed access and caching
 - ✅ Metadata extraction
 - ✅ PDF/A detection
-- ✅ Bitmap rendering
-- ✅ Error handling
+- ✅ Error handling (non-existent files, out-of-range)
+- ✅ Stream adapter callbacks
+- ✅ PDF Association Cheat Sheets (download & load integration test)
 
 ---
 
@@ -460,9 +437,9 @@ If you find a bug or have a feature request:
 
 ### Development Setup
 
-1. Clone the repository
-2. Open `src/PdfViewer/DX.PdfViewer.dproj` in Delphi
-3. Build and run tests: `src/tests/build-and-run-tests.bat`
+1. Clone the repository with submodules: `git clone --recurse-submodules ...`
+2. Download PDFium: `cd build && .\copy-pdfium-dll.ps1`
+3. Build and run tests: `.\build-tests.ps1 -Run`
 
 ---
 
