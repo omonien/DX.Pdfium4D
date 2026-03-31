@@ -1,4 +1,4 @@
-{*******************************************************************************
+﻿{*******************************************************************************
   Unit: DX.Pdf.API
 
   Part of DX Pdfium4D - Delphi Cross-Platform Wrapper für Pdfium
@@ -89,6 +89,10 @@ const
   FPDFBitmap_BGR = 2;
   FPDFBitmap_BGRx = 3;
   FPDFBitmap_BGRA = 4;
+
+  // Find text
+  FPDF_MATCHCASE = $00000001;
+  FPDF_MATCHWHOLEWORD = $00000002;
 
 type
   // Opaque types (pointers to internal PDFium structures)
@@ -213,6 +217,20 @@ procedure FPDFText_ClosePage(ATextPage: FPDF_TEXTPAGE); cdecl; external PDFIUM_D
 function FPDFText_CountChars(ATextPage: FPDF_TEXTPAGE): Integer; cdecl; external PDFIUM_DLL;
 function FPDFText_GetUnicode(ATextPage: FPDF_TEXTPAGE; AIndex: Integer): Cardinal; cdecl; external PDFIUM_DLL;
 function FPDFText_GetText(ATextPage: FPDF_TEXTPAGE; AStartIndex: Integer; ACount: Integer; AResult: PWideChar): Integer; cdecl; external PDFIUM_DLL;
+
+function FPDFText_GetCharBox(ATextPage: FPDF_TEXTPAGE; AIndex: Integer; var ALeft, ARight, ABottom, ATop: Double): Boolean; cdecl; external PDFIUM_DLL;
+function FPDFText_GetCharIndexAtPos(ATextPage: FPDF_TEXTPAGE; AX, AY, AXTolerance, AYTolerance: Double): Integer; cdecl; external PDFIUM_DLL;
+function FPDFText_GetRect(ATextPage: FPDF_TEXTPAGE; AIndex: Integer; var ALeft, ATop, ARight, ABottom: Double): Boolean; cdecl; external PDFIUM_DLL;
+
+function FPDFText_FindStart(ATextPage: FPDF_TEXTPAGE; AFindwhat: PWideChar; AFlags: DWORD; AStartIndex: Integer): FPDF_SCHHANDLE; cdecl; external PDFIUM_DLL;
+function FPDFText_FindNext(ASchHandle: FPDF_SCHHANDLE): Boolean; cdecl; external PDFIUM_DLL;
+function FPDFText_FindPrev(ASchHandle: FPDF_SCHHANDLE): Boolean; cdecl; external PDFIUM_DLL;
+function FPDFText_GetSchResultIndex(ASchHandle: FPDF_SCHHANDLE): Integer; cdecl; external PDFIUM_DLL;
+function FPDFText_GetSchCount(ASchHandle: FPDF_SCHHANDLE): Integer; cdecl; external PDFIUM_DLL;
+procedure FPDFText_FindClose(ASchHandle: FPDF_SCHHANDLE); cdecl; external PDFIUM_DLL;
+
+function FPDFText_CountRects(ATextPage: FPDF_TEXTPAGE; AStartIndex, ACount: Integer): Integer; cdecl; external PDFIUM_DLL;
+function FPDFText_GetBoundedText(ATextPage: FPDF_TEXTPAGE; ALeft, ATop, ARight, ABottom: Double; ABuffer: PWideChar; ABufLen: Integer): Integer; cdecl; external PDFIUM_DLL;
 
 // Bookmark functions
 function FPDFBookmark_GetFirstChild(ADocument: FPDF_DOCUMENT; ABookmark: FPDF_BOOKMARK): FPDF_BOOKMARK; cdecl; external PDFIUM_DLL;

@@ -1,4 +1,4 @@
-{*******************************************************************************
+﻿{*******************************************************************************
   Unit: DX.Pdf.Document
 
   Part of DX Pdfium4D - Delphi Cross-Platform Wrapper für Pdfium
@@ -21,6 +21,7 @@ uses
   System.SysUtils,
   System.Classes,
   System.Types,
+  System.Generics.Collections,
   System.UITypes,
   DX.Pdf.API;
 
@@ -53,6 +54,30 @@ type
     property Stream: TStream read FStream;
   end;
 
+  IPageSearch = interface
+    ['{1B27E43D-FEA8-4A5F-8615-BF4FFC79497E}']
+    function FindNext: Boolean;
+    function FindPrev: Boolean;
+    function GetResultIndex: Integer;
+    function GetCount: Integer;
+  end;
+
+  TSearchNotify = TProc;
+
+  TPageSearch = class(TInterfacedObject, IPageSearch)
+  private
+    FHandleSearch: FPDF_SCHHANDLE;
+    FPage: TPdfPage;
+    procedure NotifyHandle;
+  public
+    function FindNext: Boolean;
+    function FindPrev: Boolean;
+    function GetResultIndex: Integer;
+    function GetCount: Integer;
+    constructor Create(APage: TPdfPage; const AFindwhat: string; const AFlags: DWORD; const AStartIndex: Integer); reintroduce;
+    destructor Destroy; override;
+  end;
+
   /// <summary>
   /// Represents a single page in a PDF document
   /// </summary>
@@ -60,10 +85,14 @@ type
   private
     FDocument: TPdfDocument;
     FHandle: FPDF_PAGE;
+    FHandleText: FPDF_TEXTPAGE;
     FPageIndex: Integer;
     FWidth: Double;
     FHeight: Double;
+    FSearchNotifies: TList<TSearchNotify>;
     function GetRotation: Integer;
+    procedure AddSearchNotify(ASearch: TSearchNotify);
+    procedure RemoveSearchNotify(ASearch: TSearchNotify);
   public
     constructor Create(ADocument: TPdfDocument; APageIndex: Integer);
     destructor Destroy; override;
@@ -92,6 +121,14 @@ type
     /// Internal PDFium page handle
     /// </summary>
     property Handle: FPDF_PAGE read FHandle;
+
+    function GetCharBox(const AIndex: Integer): TRectF;
+    function GetCharIndexAtPos(const AX, AY, AXTolerance, AYTolerance: Double): Integer;
+    function GetCharRect(const AIndex: Integer; var ARect: TRectF): Boolean;
+    function FindStart(const AFindwhat: string; const AFlags: DWORD; const AStartIndex: Integer): IPageSearch;
+
+    function CountRects(const AStartIndex, ACount: Integer): Integer;
+    function GetBoundedText(const ARect: TRectF; const ABuffer: string): Integer;
   end;
 
   /// <summary>
@@ -215,6 +252,32 @@ implementation
 
 uses
   System.Math;
+
+function ConvertPDFCoordsToCanvas(PDFRect: TRectF; PageHeight: Double; CanvasDPI: Integer = 96): TRectF;
+var
+  PointsToPixels: Double;
+begin
+  PointsToPixels := CanvasDPI / 72.0; // 72 points per inch
+
+  Result.Left := PDFRect.Left * PointsToPixels;
+  Result.Right := PDFRect.Right * PointsToPixels;
+
+  Result.Top := (PageHeight - PDFRect.Top) * PointsToPixels;
+  Result.Bottom := (PageHeight - PDFRect.Bottom) * PointsToPixels;
+end;
+
+function ConvertCanvasCoordsToPDF(const CanvasRect: TRectF; PageHeight: Double; CanvasDPI: Integer = 96): TRectF;
+var
+  PixelsToPoints: Double;
+begin
+  PixelsToPoints := 72.0 / CanvasDPI;
+
+  Result.Left := CanvasRect.Left * PixelsToPoints;
+  Result.Right := CanvasRect.Right * PixelsToPoints;
+
+  Result.Top := PageHeight - (CanvasRect.Bottom * PixelsToPoints);
+  Result.Bottom := PageHeight - (CanvasRect.Top * PixelsToPoints);
+end;
 
 { TPdfStreamAdapter }
 
@@ -533,15 +596,29 @@ end;
 
 { TPdfPage }
 
+procedure TPdfPage.AddSearchNotify(ASearch: TSearchNotify);
+begin
+  FSearchNotifies.Add(ASearch);
+end;
+
+function TPdfPage.CountRects(const AStartIndex, ACount: Integer): Integer;
+begin
+  Result := FPDFText_CountRects(FHandleText, AStartIndex, ACount);
+end;
+
 constructor TPdfPage.Create(ADocument: TPdfDocument; APageIndex: Integer);
 begin
   inherited Create;
+  FSearchNotifies := TList<TSearchNotify>.Create;
   FDocument := ADocument;
   FPageIndex := APageIndex;
 
   FHandle := FPDF_LoadPage(FDocument.Handle, FPageIndex);
   if FHandle = nil then
     raise EPdfPageException.CreateFmt('Failed to load page %d', [FPageIndex]);
+  FHandleText := FPDFText_LoadPage(FHandle);
+  if FHandleText = nil then
+    raise EPdfPageException.CreateFmt('Failed to load text page %d', [FPageIndex]);
 
   FWidth := FPDF_GetPageWidth(FHandle);
   FHeight := FPDF_GetPageHeight(FHandle);
@@ -549,17 +626,107 @@ end;
 
 destructor TPdfPage.Destroy;
 begin
+  if FHandleText <> nil then
+    FPDFText_ClosePage(FHandleText);
   if FHandle <> nil then
     FPDF_ClosePage(FHandle);
+  // Notify search instancies
+  for var Notify in FSearchNotifies do
+    Notify();
+  FSearchNotifies.Free;
   inherited;
+end;
+
+function TPdfPage.FindStart(const AFindwhat: string; const AFlags: DWORD; const AStartIndex: Integer): IPageSearch;
+begin
+  Result := TPageSearch.Create(Self, AFindwhat, AFlags, AStartIndex);
+end;
+
+function TPdfPage.GetBoundedText(const ARect: TRectF; const ABuffer: string): Integer;
+begin
+  var FRect := ConvertCanvasCoordsToPDF(ARect, Height);
+  Result := FPDFText_GetBoundedText(FHandleText, FRect.Left, FRect.Top, FRect.Right, FRect.Bottom, PWideChar(ABuffer), ABuffer.Length);
+end;
+
+function TPdfPage.GetCharBox(const AIndex: Integer): TRectF;
+var
+  Left, Right, Bottom, Top: Double;
+begin
+  FPDFText_GetCharBox(FHandleText, AIndex, Left, Right, Bottom, Top);
+  Result := ConvertPDFCoordsToCanvas(TRectF.Create(Left, Top, Right, Bottom), Height);
+end;
+
+function TPdfPage.GetCharIndexAtPos(const AX, AY, AXTolerance, AYTolerance: Double): Integer;
+begin
+  Result := FPDFText_GetCharIndexAtPos(FHandleText, AX, AY, AXTolerance, AYTolerance);
+end;
+
+function TPdfPage.GetCharRect(const AIndex: Integer; var ARect: TRectF): Boolean;
+var
+  Left, Right, Bottom, Top: Double;
+begin
+  Result := FPDFText_GetRect(FHandleText, AIndex, Left, Top, Right, Bottom);
+  ARect := ConvertPDFCoordsToCanvas(TRectF.Create(Left, Top, Right, Bottom), Height);
 end;
 
 function TPdfPage.GetRotation: Integer;
 begin
-  if FHandle <> nil then
-    Result := FPDFPage_GetRotation(FHandle)
-  else
-    Result := 0;
+  Result := FPDFPage_GetRotation(FHandle);
+end;
+
+procedure TPdfPage.RemoveSearchNotify(ASearch: TSearchNotify);
+begin
+  FSearchNotifies.Remove(ASearch);
+end;
+
+{ TPageSearch }
+
+constructor TPageSearch.Create(APage: TPdfPage; const AFindwhat: string; const AFlags: DWORD; const AStartIndex: Integer);
+begin
+  inherited Create;
+  FPage := APage;
+  FHandleSearch := FPDFText_FindStart(FPage.FHandleText, PWideChar(AFindwhat), AFlags, AStartIndex);
+  FPage.AddSearchNotify(NotifyHandle);
+end;
+
+destructor TPageSearch.Destroy;
+begin
+  if Assigned(FPage) then
+    FPage.RemoveSearchNotify(NotifyHandle);
+  inherited;
+end;
+
+function TPageSearch.FindNext: Boolean;
+begin
+  if FPage = nil then
+    Exit(False);
+  Result := FPDFText_FindNext(FHandleSearch);
+end;
+
+function TPageSearch.FindPrev: Boolean;
+begin
+  if FPage = nil then
+    Exit(False);
+  Result := FPDFText_FindPrev(FHandleSearch);
+end;
+
+function TPageSearch.GetCount: Integer;
+begin
+  if FPage = nil then
+    Exit(0);
+  Result := FPDFText_GetSchCount(FHandleSearch);
+end;
+
+function TPageSearch.GetResultIndex: Integer;
+begin
+  if FPage = nil then
+    Exit(0);
+  Result := FPDFText_GetSchResultIndex(FHandleSearch);
+end;
+
+procedure TPageSearch.NotifyHandle;
+begin
+  FPage := nil;
 end;
 
 end.
