@@ -110,7 +110,7 @@
         <DCC_ExeOutput>$(platform)\$(config)</DCC_ExeOutput>
         <DCC_ImageBase>00400000</DCC_ImageBase>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
-        <DCC_UnitSearchPath>..\lib\DUnitX\Source;..\src;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\..\lib\DUnitX\Source;..;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
         <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=</VerInfo_Keys>
@@ -161,8 +161,8 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="..\src\DX.Pdf.API.pas"/>
-        <DCCReference Include="..\src\DX.Pdf.Document.pas"/>
+        <DCCReference Include="..\DX.Pdf.API.pas"/>
+        <DCCReference Include="..\DX.Pdf.Document.pas"/>
         <DCCReference Include="DX.Pdf.Document.Tests.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>

@@ -95,6 +95,24 @@ type
 
     [Test]
     procedure TestStreamAdapterCallback;
+
+    [Test]
+    procedure TestPagesIndexedAccess;
+
+    [Test]
+    procedure TestPagesReturnsSameInstance;
+
+    [Test]
+    procedure TestPagesOutOfRange;
+
+    [Test]
+    procedure TestPagesOnUnloadedDocument;
+
+    [Test]
+    procedure TestPagesDefaultProperty;
+
+    [Test]
+    procedure TestPagesClearedOnClose;
   end;
 
 implementation
@@ -597,6 +615,141 @@ begin
     Assert.IsTrue(LCallbackExecuted, 'Stream adapter callback should have been executed');
   finally
     LStream.Free;
+    LDocument.Free;
+  end;
+end;
+
+procedure TPdfDocumentTests.TestPagesIndexedAccess;
+var
+  LDocument: TPdfDocument;
+  LPage: TPdfPage;
+begin
+  LDocument := TPdfDocument.Create;
+  try
+    LDocument.LoadFromFile(FTestPdfPath);
+
+    // Access page via cached Pages[] property
+    LPage := LDocument.Pages[0];
+    Assert.IsNotNull(LPage, 'Pages[0] should return a valid page');
+    Assert.AreEqual(0, LPage.PageIndex, 'PageIndex should be 0');
+    Assert.AreEqual(595.0, LPage.Width, 0.1, 'Page width should be 595 (A4)');
+
+    // No need to free LPage - document owns it!
+  finally
+    LDocument.Free;
+  end;
+end;
+
+procedure TPdfDocumentTests.TestPagesReturnsSameInstance;
+var
+  LDocument: TPdfDocument;
+  LPage1, LPage2: TPdfPage;
+begin
+  LDocument := TPdfDocument.Create;
+  try
+    LDocument.LoadFromFile(FTestPdfPath);
+
+    // Two accesses to same index must return the same object
+    LPage1 := LDocument.Pages[0];
+    LPage2 := LDocument.Pages[0];
+    Assert.AreSame(LPage1, LPage2, 'Pages[0] should return the same cached instance');
+  finally
+    LDocument.Free;
+  end;
+end;
+
+procedure TPdfDocumentTests.TestPagesOutOfRange;
+var
+  LDocument: TPdfDocument;
+  LExceptionRaised: Boolean;
+begin
+  LDocument := TPdfDocument.Create;
+  try
+    LDocument.LoadFromFile(FTestPdfPath);
+
+    LExceptionRaised := False;
+    try
+      LDocument.Pages[1]; // Only 1 page, index 1 is out of range
+    except
+      on E: EPdfPageException do
+        LExceptionRaised := True;
+    end;
+    Assert.IsTrue(LExceptionRaised, 'Pages[1] should raise EPdfPageException on single-page document');
+
+    LExceptionRaised := False;
+    try
+      LDocument.Pages[-1];
+    except
+      on E: EPdfPageException do
+        LExceptionRaised := True;
+    end;
+    Assert.IsTrue(LExceptionRaised, 'Pages[-1] should raise EPdfPageException');
+  finally
+    LDocument.Free;
+  end;
+end;
+
+procedure TPdfDocumentTests.TestPagesOnUnloadedDocument;
+var
+  LDocument: TPdfDocument;
+  LExceptionRaised: Boolean;
+begin
+  LDocument := TPdfDocument.Create;
+  try
+    LExceptionRaised := False;
+    try
+      LDocument.Pages[0];
+    except
+      on E: EPdfPageException do
+        LExceptionRaised := True;
+    end;
+    Assert.IsTrue(LExceptionRaised, 'Pages[0] on unloaded document should raise EPdfPageException');
+  finally
+    LDocument.Free;
+  end;
+end;
+
+procedure TPdfDocumentTests.TestPagesDefaultProperty;
+var
+  LDocument: TPdfDocument;
+  LPage: TPdfPage;
+begin
+  LDocument := TPdfDocument.Create;
+  try
+    LDocument.LoadFromFile(FTestPdfPath);
+
+    // Test default property syntax: LDocument[0] instead of LDocument.Pages[0]
+    LPage := LDocument[0];
+    Assert.IsNotNull(LPage, 'Default property access should work');
+    Assert.AreEqual(0, LPage.PageIndex, 'Page accessed via default property should have correct index');
+  finally
+    LDocument.Free;
+  end;
+end;
+
+procedure TPdfDocumentTests.TestPagesClearedOnClose;
+var
+  LDocument: TPdfDocument;
+  LPage: TPdfPage;
+begin
+  LDocument := TPdfDocument.Create;
+  try
+    LDocument.LoadFromFile(FTestPdfPath);
+
+    // Access page to populate cache
+    LPage := LDocument.Pages[0];
+    Assert.IsNotNull(LPage, 'Page should be accessible before Close');
+
+    // Close should free cached pages
+    LDocument.Close;
+    Assert.IsFalse(LDocument.IsLoaded, 'Document should not be loaded after Close');
+
+    // Reload and verify fresh cache
+    LDocument.LoadFromFile(FTestPdfPath);
+    LPage := LDocument.Pages[0];
+    Assert.IsNotNull(LPage, 'Page should be accessible after reload');
+    Assert.AreEqual(0, LPage.PageIndex, 'Page index should be correct after reload');
+  finally
     LDocument.Free;
   end;
 end;
