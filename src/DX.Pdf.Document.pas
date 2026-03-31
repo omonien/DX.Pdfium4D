@@ -140,6 +140,8 @@ type
     FPageCount: Integer;
     FFileName: string;
     FStreamAdapter: TPdfStreamAdapter; // Stream adapter must remain valid while document is open!
+    FPages: TArray<TPdfPage>;
+    function GetPage(AIndex: Integer): TPdfPage;
   public
     constructor Create;
     destructor Destroy; override;
@@ -212,6 +214,13 @@ type
     /// Internal PDFium document handle
     /// </summary>
     property Handle: FPDF_DOCUMENT read FHandle;
+
+    /// <summary>
+    /// Provides cached, indexed access to the document pages.
+    /// Pages are created on first access and managed by the document.
+    /// The document owns the page instances - do NOT free them manually.
+    /// </summary>
+    property Pages[AIndex: Integer]: TPdfPage read GetPage; default;
   end;
 
   /// <summary>
@@ -389,6 +398,7 @@ begin
   FPageCount := 0;
   FFileName := '';
   FStreamAdapter := nil;
+  FPages := nil;
   TPdfLibrary.Initialize;
 end;
 
@@ -397,6 +407,22 @@ begin
   Close;
   TPdfLibrary.Finalize;
   inherited;
+end;
+
+function TPdfDocument.GetPage(AIndex: Integer): TPdfPage;
+begin
+  if not IsLoaded then
+    raise EPdfPageException.Create('No document loaded');
+
+  if (AIndex < 0) or (AIndex >= FPageCount) then
+    raise EPdfPageException.CreateFmt('Page index out of range: %d (valid range: 0-%d)',
+      [AIndex, FPageCount - 1]);
+
+  // Lazy creation: only create page instance on first access
+  if FPages[AIndex] = nil then
+    FPages[AIndex] := TPdfPage.Create(Self, AIndex);
+
+  Result := FPages[AIndex];
 end;
 
 procedure TPdfDocument.LoadFromFile(const AFileName: string; const APassword: string = '');
@@ -426,6 +452,7 @@ begin
 
   FFileName := AFileName;
   FPageCount := FPDF_GetPageCount(FHandle);
+  SetLength(FPages, FPageCount);
 end;
 
 procedure TPdfDocument.LoadFromStream(AStream: TStream; AOwnsStream: Boolean; const APassword: string);
@@ -458,10 +485,18 @@ begin
 
   FFileName := '';
   FPageCount := FPDF_GetPageCount(FHandle);
+  SetLength(FPages, FPageCount);
 end;
 
 procedure TPdfDocument.Close;
+var
+  I: Integer;
 begin
+  // Free all cached page instances before closing the document
+  for I := 0 to High(FPages) do
+    FreeAndNil(FPages[I]);
+  FPages := nil;
+
   if FHandle <> nil then
   begin
     FPDF_CloseDocument(FHandle);
@@ -469,7 +504,7 @@ begin
     FPageCount := 0;
     FFileName := '';
   end;
-  FreeAndNil(FStreamAdapter);   // Free stream adapter (and optionally the stream)
+  FreeAndNil(FStreamAdapter);
 end;
 
 function TPdfDocument.IsLoaded: Boolean;
