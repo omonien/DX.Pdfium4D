@@ -103,11 +103,14 @@
         <DCC_S>false</DCC_S>
         <DCC_ImageBase>00400000</DCC_ImageBase>
         <SanitizedProjectName>DX_PdfViewerVCL</SanitizedProjectName>
-        <DCC_DcuOutput>.\$(Platform)\$(Config)\dcu</DCC_DcuOutput>
-        <DCC_ExeOutput>.\$(Platform)\$(Config)</DCC_ExeOutput>
+        <DCC_DcuOutput>..\..\build\$(Platform)\$(Config)\dcu</DCC_DcuOutput>
+        <DCC_ExeOutput>..\..\build\$(Platform)\$(Config)</DCC_ExeOutput>
         <DCC_Namespace>Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <VerInfo_Locale>1031</VerInfo_Locale>
-        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=</VerInfo_Keys>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_MajorVer>1</VerInfo_MajorVer>
+        <VerInfo_MinorVer>0</VerInfo_MinorVer>
+        <VerInfo_Keys>CompanyName=Olaf Monien;FileDescription=DX PDF Viewer VCL - Example application for DX Pdfium4D wrapper;FileVersion=1.0.0.0;InternalName=DX.PdfViewerVCL;LegalCopyright=Copyright © 2026 Olaf Monien;LegalTrademarks=;OriginalFilename=DX.PdfViewerVCL.exe;ProductName=DX PDF Viewer;ProductVersion=1.0.0.0;Comments=MIT License;CFBundleName=</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android64)'!=''">
         <Android_LauncherIcon192>$(ProjectName).Artwork\Android\FM_LauncherIcon_192x192.png</Android_LauncherIcon192>
@@ -197,7 +200,7 @@
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Olaf Monien;FileDescription=DX PDF Viewer VCL;FileVersion=1.0.0.0;InternalName=DX.PdfViewerVCL;LegalCopyright=Copyright © 2026 Olaf Monien;LegalTrademarks=;OriginalFilename=DX.PdfViewerVCL.exe;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=DX PDF Viewer;ProductVersion=1.0.0.0;Comments=MIT License</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
         <UWP_DelphiLogo44>$(ProjectName).Artwork\Windows\Uwp_44.png</UWP_DelphiLogo44>
@@ -243,7 +246,7 @@
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Olaf Monien;FileDescription=DX PDF Viewer VCL;FileVersion=1.0.0.0;InternalName=DX.PdfViewerVCL;LegalCopyright=Copyright © 2026 Olaf Monien;LegalTrademarks=;OriginalFilename=DX.PdfViewerVCL.exe;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=DX PDF Viewer;ProductVersion=1.0.0.0;Comments=MIT License</VerInfo_Keys>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">

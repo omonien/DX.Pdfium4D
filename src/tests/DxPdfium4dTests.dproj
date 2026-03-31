@@ -106,14 +106,17 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
         <SanitizedProjectName>DxPdfViewerTests</SanitizedProjectName>
-        <DCC_DcuOutput>$(platform)\$(config)\dcu</DCC_DcuOutput>
-        <DCC_ExeOutput>$(platform)\$(config)</DCC_ExeOutput>
+        <DCC_DcuOutput>..\..\build\$(Platform)\$(Config)\dcu</DCC_DcuOutput>
+        <DCC_ExeOutput>..\..\build\$(Platform)\$(Config)</DCC_ExeOutput>
         <DCC_ImageBase>00400000</DCC_ImageBase>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <DCC_UnitSearchPath>..\..\lib\DUnitX\Source;..;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <Icns_MainIcns>$(BDS)\bin\delphi_PROJECTICNS.icns</Icns_MainIcns>
         <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
-        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=</VerInfo_Keys>
+        <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <VerInfo_MajorVer>1</VerInfo_MajorVer>
+        <VerInfo_MinorVer>0</VerInfo_MinorVer>
+        <VerInfo_Keys>CompanyName=Olaf Monien;FileDescription=DX Pdfium4D Unit Tests;FileVersion=1.0.0.0;InternalName=DxPdfium4dTests;LegalCopyright=Copyright © 2026 Olaf Monien;LegalTrademarks=;OriginalFilename=DxPdfium4dTests.exe;ProductName=DX Pdfium4D;ProductVersion=1.0.0.0;Comments=MIT License;CFBundleName=</VerInfo_Keys>
         <VerInfo_Locale>1031</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android64)'!=''">
@@ -123,7 +126,7 @@
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <BT_BuildType>Debug</BT_BuildType>
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
-        <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=Olaf Monien;FileDescription=DX Pdfium4D Unit Tests;FileVersion=1.0.0.0;InternalName=DxPdfium4dTests;LegalCopyright=Copyright © 2026 Olaf Monien;LegalTrademarks=;OriginalFilename=DxPdfium4dTests.exe;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=DX Pdfium4D;ProductVersion=1.0.0.0;Comments=MIT License</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_iOSDevice64)'!=''">
