@@ -29,28 +29,24 @@ uses
   ;
 
 const
+  // PDFium shared-library name per platform.
+  // Note: on iOS, Delphi defines both MACOS and IOS, so IOS must be
+  // checked first (or MACOS excluded for IOS) to avoid a duplicate
+  // PDFIUM_DLL declaration.
   {$IFDEF MSWINDOWS}
-    {$IFDEF WIN64}
-      PDFIUM_DLL = 'pdfium.dll';
-    {$ELSE}
-      PDFIUM_DLL = 'pdfium.dll';
-    {$ENDIF}
-  {$ENDIF}
-  {$IFDEF MACOS}
-    {$IFDEF CPUARM64}
-      PDFIUM_DLL = 'libpdfium.dylib';
-    {$ELSE}
-      PDFIUM_DLL = 'libpdfium.dylib';
-    {$ENDIF}
-  {$ENDIF}
-  {$IFDEF LINUX}
-    PDFIUM_DLL = 'libpdfium.so';
-  {$ENDIF}
-  {$IFDEF ANDROID}
-    PDFIUM_DLL = 'libpdfium.so';
+  PDFIUM_DLL = 'pdfium.dll';
   {$ENDIF}
   {$IFDEF IOS}
-    PDFIUM_DLL = 'libpdfium.dylib';
+  PDFIUM_DLL = 'libpdfium.dylib';
+  {$ENDIF}
+  {$IF DEFINED(MACOS) and not DEFINED(IOS)}
+  PDFIUM_DLL = 'libpdfium.dylib';
+  {$IFEND}
+  {$IFDEF LINUX}
+  PDFIUM_DLL = 'libpdfium.so';
+  {$ENDIF}
+  {$IFDEF ANDROID}
+  PDFIUM_DLL = 'libpdfium.so';
   {$ENDIF}
 
   // Error codes
