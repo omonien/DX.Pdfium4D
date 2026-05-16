@@ -29,7 +29,8 @@ uses
   DX.Pdf.Viewer.FMX in '..\DX.Pdf.Viewer.FMX.pas',
   DX.Pdf.Document.Tests in 'DX.Pdf.Document.Tests.pas',
   DX.Pdf.CheatSheets.Tests in 'DX.Pdf.CheatSheets.Tests.pas',
-  DX.Pdf.Extended.Tests in 'DX.Pdf.Extended.Tests.pas';
+  DX.Pdf.Extended.Tests in 'DX.Pdf.Extended.Tests.pas',
+  DX.Pdf.ABI.Tests in 'DX.Pdf.ABI.Tests.pas';
 
 {$IFNDEF TESTINSIGHT}
 var

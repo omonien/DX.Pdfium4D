@@ -109,13 +109,17 @@ type
 
   // Basic types
   FPDF_BOOL = type Integer;
+  // FPDF_DWORD mirrors C 'unsigned long': 32-bit on Windows (LLP64) and on
+  // 32-bit POSIX, 64-bit on 64-bit POSIX (LP64). Do NOT use this for fields
+  // declared 'unsigned int' (e.g. V8EmbedderSlot) or 'int' (e.g. the size
+  // argument to FPDF_LoadMemDocument) - those are always 32-bit.
   {$IFDEF MSWINDOWS}
-  FPDF_DWORD = Cardinal; // Always 32-bit on Windows (LLP64)
+  FPDF_DWORD = type Cardinal; // Always 32-bit on Windows (LLP64)
   {$ELSE}
     {$IFDEF CPU64BITS}
-    FPDF_DWORD = UInt64;   // 64-bit on 64-bit POSIX (LP64)
+  FPDF_DWORD = type UInt64;   // 64-bit on 64-bit POSIX (LP64)
     {$ELSE}
-    FPDF_DWORD = Cardinal; // 32-bit on 32-bit POSIX
+  FPDF_DWORD = type Cardinal; // 32-bit on 32-bit POSIX
     {$ENDIF}
   {$ENDIF}
   FPDF_WCHAR = type Word;
@@ -185,7 +189,7 @@ function FPDF_GetLastError: FPDF_DWORD; cdecl; external PDFIUM_DLL;
 
 // Document functions
 function FPDF_LoadDocument(const AFilePath: FPDF_STRING; const APassword: FPDF_BYTESTRING): FPDF_DOCUMENT; cdecl; external PDFIUM_DLL;
-function FPDF_LoadMemDocument(const ADataBuf: Pointer; ASize: FPDF_DWORD; const APassword: FPDF_BYTESTRING): FPDF_DOCUMENT; cdecl; external PDFIUM_DLL;
+function FPDF_LoadMemDocument(const ADataBuf: Pointer; ASize: Integer; const APassword: FPDF_BYTESTRING): FPDF_DOCUMENT; cdecl; external PDFIUM_DLL;
 function FPDF_LoadCustomDocument(pFileAccess: PFPDF_FILEACCESS; const APassword: FPDF_BYTESTRING): FPDF_DOCUMENT; cdecl; external PDFIUM_DLL;
 procedure FPDF_CloseDocument(ADocument: FPDF_DOCUMENT); cdecl; external PDFIUM_DLL;
 function FPDF_GetPageCount(ADocument: FPDF_DOCUMENT): Integer; cdecl; external PDFIUM_DLL;
@@ -223,7 +227,7 @@ procedure FPDF_RenderPage(ADC: HDC; APage: FPDF_PAGE; AStartX: Integer; AStartY:
 function FPDFText_LoadPage(APage: FPDF_PAGE): FPDF_TEXTPAGE; cdecl; external PDFIUM_DLL;
 procedure FPDFText_ClosePage(ATextPage: FPDF_TEXTPAGE); cdecl; external PDFIUM_DLL;
 function FPDFText_CountChars(ATextPage: FPDF_TEXTPAGE): Integer; cdecl; external PDFIUM_DLL;
-function FPDFText_GetUnicode(ATextPage: FPDF_TEXTPAGE; AIndex: Integer): FPDF_DWORD; cdecl; external PDFIUM_DLL;
+function FPDFText_GetUnicode(ATextPage: FPDF_TEXTPAGE; AIndex: Integer): Cardinal; cdecl; external PDFIUM_DLL;
 function FPDFText_GetText(ATextPage: FPDF_TEXTPAGE; AStartIndex: Integer; ACount: Integer; AResult: PWideChar): Integer; cdecl; external PDFIUM_DLL;
 
 function FPDFText_GetCharBox(ATextPage: FPDF_TEXTPAGE; AIndex: Integer; var ALeft, ARight, ABottom, ATop: Double): Boolean; cdecl; external PDFIUM_DLL;
@@ -277,7 +281,7 @@ begin
     FPDF_ERR_SECURITY: Result := 'Unsupported security scheme';
     FPDF_ERR_PAGE: Result := 'Page not found or content error';
   else
-    Result := 'Unknown error code: ' + UInt64(AError).ToString;
+    Result := Format('Unknown error code: %u', [AError]);
   end;
 end;
 
