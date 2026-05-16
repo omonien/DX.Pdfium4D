@@ -109,7 +109,15 @@ type
 
   // Basic types
   FPDF_BOOL = type Integer;
-  FPDF_DWORD = LongWord; // 32-bit on Windows, 64-bit on 64-bit Unix (matches C++ unsigned long)
+  {$IFDEF MSWINDOWS}
+  FPDF_DWORD = Cardinal; // Always 32-bit on Windows (LLP64)
+  {$ELSE}
+    {$IFDEF CPU64BITS}
+    FPDF_DWORD = UInt64;   // 64-bit on 64-bit POSIX (LP64)
+    {$ELSE}
+    FPDF_DWORD = Cardinal; // 32-bit on 32-bit POSIX
+    {$ENDIF}
+  {$ENDIF}
   FPDF_WCHAR = type Word;
   FPDF_BYTESTRING = type PAnsiChar;
   FPDF_WIDESTRING = type PWideChar;
