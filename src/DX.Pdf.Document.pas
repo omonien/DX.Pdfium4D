@@ -74,7 +74,7 @@ type
     function FindPrev: Boolean;
     function GetResultIndex: Integer;
     function GetCount: Integer;
-    constructor Create(APage: TPdfPage; const AFindwhat: string; const AFlags: DWORD; const AStartIndex: Integer); reintroduce;
+    constructor Create(APage: TPdfPage; const AFindwhat: string; const AFlags: FPDF_DWORD; const AStartIndex: Integer); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -140,7 +140,7 @@ type
     function GetCharBox(const AIndex: Integer): TRectF;
     function GetCharIndexAtPos(const AX, AY, AXTolerance, AYTolerance: Double): Integer;
     function GetCharRect(const AIndex: Integer; var ARect: TRectF): Boolean;
-    function FindStart(const AFindwhat: string; const AFlags: DWORD; const AStartIndex: Integer): IPageSearch;
+    function FindStart(const AFindwhat: string; const AFlags: FPDF_DWORD; const AStartIndex: Integer): IPageSearch;
 
     function CountRects(const AStartIndex, ACount: Integer): Integer;
     function GetBoundedText(const ARect: TRectF; const ABuffer: string): Integer;
@@ -701,7 +701,7 @@ begin
   Result := string(PWideChar(@LBuffer[0]));
 end;
 
-function TPdfPage.FindStart(const AFindwhat: string; const AFlags: DWORD; const AStartIndex: Integer): IPageSearch;
+function TPdfPage.FindStart(const AFindwhat: string; const AFlags: FPDF_DWORD; const AStartIndex: Integer): IPageSearch;
 begin
   Result := TPageSearch.Create(Self, AFindwhat, AFlags, AStartIndex);
 end;
@@ -745,7 +745,7 @@ end;
 
 { TPageSearch }
 
-constructor TPageSearch.Create(APage: TPdfPage; const AFindwhat: string; const AFlags: DWORD; const AStartIndex: Integer);
+constructor TPageSearch.Create(APage: TPdfPage; const AFindwhat: string; const AFlags: FPDF_DWORD; const AStartIndex: Integer);
 begin
   inherited Create;
   FPage := APage;

@@ -109,7 +109,7 @@ type
 
   // Basic types
   FPDF_BOOL = type Integer;
-  FPDF_DWORD = type Cardinal;
+  FPDF_DWORD = LongWord; // 32-bit on Windows, 64-bit on 64-bit Unix (matches C++ unsigned long)
   FPDF_WCHAR = type Word;
   FPDF_BYTESTRING = type PAnsiChar;
   FPDF_WIDESTRING = type PWideChar;
@@ -222,7 +222,7 @@ function FPDFText_GetCharBox(ATextPage: FPDF_TEXTPAGE; AIndex: Integer; var ALef
 function FPDFText_GetCharIndexAtPos(ATextPage: FPDF_TEXTPAGE; AX, AY, AXTolerance, AYTolerance: Double): Integer; cdecl; external PDFIUM_DLL;
 function FPDFText_GetRect(ATextPage: FPDF_TEXTPAGE; AIndex: Integer; var ALeft, ATop, ARight, ABottom: Double): Boolean; cdecl; external PDFIUM_DLL;
 
-function FPDFText_FindStart(ATextPage: FPDF_TEXTPAGE; AFindwhat: PWideChar; AFlags: DWORD; AStartIndex: Integer): FPDF_SCHHANDLE; cdecl; external PDFIUM_DLL;
+function FPDFText_FindStart(ATextPage: FPDF_TEXTPAGE; AFindwhat: PWideChar; AFlags: FPDF_DWORD; AStartIndex: Integer): FPDF_SCHHANDLE; cdecl; external PDFIUM_DLL;
 function FPDFText_FindNext(ASchHandle: FPDF_SCHHANDLE): Boolean; cdecl; external PDFIUM_DLL;
 function FPDFText_FindPrev(ASchHandle: FPDF_SCHHANDLE): Boolean; cdecl; external PDFIUM_DLL;
 function FPDFText_GetSchResultIndex(ASchHandle: FPDF_SCHHANDLE): Integer; cdecl; external PDFIUM_DLL;
