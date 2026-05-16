@@ -44,8 +44,8 @@ type
     FStream: TStream;
     FFileAccess: FPDF_FILEACCESS;
     FOwnsStream: Boolean;
-    class function GetBlockCallback(param: Pointer; position: Cardinal;
-      pBuf: PByte; size: Cardinal): Integer; cdecl; static;
+    class function GetBlockCallback(param: Pointer; position: FPDF_DWORD;
+      pBuf: PByte; size: FPDF_DWORD): Integer; cdecl; static;
   public
     constructor Create(AStream: TStream; AOwnsStream: Boolean = False);
     destructor Destroy; override;
@@ -324,11 +324,11 @@ begin
   inherited;
 end;
 
-class function TPdfStreamAdapter.GetBlockCallback(param: Pointer; position: Cardinal;
-  pBuf: PByte; size: Cardinal): Integer;
+class function TPdfStreamAdapter.GetBlockCallback(param: Pointer; position: FPDF_DWORD;
+  pBuf: PByte; size: FPDF_DWORD): Integer;
 var
   LAdapter: TPdfStreamAdapter;
-  LBytesRead: Integer;
+  LBytesRead: Int64;
 begin
   Result := 0;  // Default: error
 
@@ -345,7 +345,7 @@ begin
     LBytesRead := LAdapter.FStream.Read(pBuf^, size);
 
     // Return success if we read the expected amount
-    if LBytesRead = Integer(size) then
+    if LBytesRead = Int64(size) then
       Result := 1  // Success
     else
       Result := 0; // Error: couldn't read full block
@@ -444,7 +444,7 @@ procedure TPdfDocument.LoadFromFile(const AFileName: string; const APassword: st
 var
   LPasswordAnsi: AnsiString;
   LFilePathUtf8: UTF8String;
-  LError: Cardinal;
+  LError: FPDF_DWORD;
 begin
   Close;
 
@@ -473,7 +473,7 @@ end;
 procedure TPdfDocument.LoadFromStream(AStream: TStream; AOwnsStream: Boolean; const APassword: string);
 var
   LPasswordAnsi: AnsiString;
-  LError: Cardinal;
+  LError: FPDF_DWORD;
 begin
   Close;
 
@@ -563,7 +563,7 @@ end;
 
 function TPdfDocument.GetMetadata(const ATag: string): string;
 var
-  LBufLen: Cardinal;
+  LBufLen: FPDF_DWORD;
   LBuffer: array of WideChar;
   LTagAnsi: AnsiString;
 begin
