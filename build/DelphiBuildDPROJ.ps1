@@ -218,8 +218,18 @@ function Build-DPROJProject {
 
     if ($ExtraProperties) {
         foreach ($Key in $ExtraProperties.Keys) {
-            $MSBuildArgs += "/p:$Key=$($ExtraProperties[$Key])"
-            Write-Detail "  Extra:    $Key=$($ExtraProperties[$Key])"
+            # MSBuild treats embedded quotes in /p:Key=Value as part of the
+            # property value (so "true" != true), so only quote when the
+            # value actually contains whitespace - paths and the like still
+            # survive PowerShell -> MSBuild argument splitting, but simple
+            # tokens stay simple.
+            $Value = [string]$ExtraProperties[$Key]
+            if ($Value -match '\s') {
+                $MSBuildArgs += "/p:$Key=`"$Value`""
+            } else {
+                $MSBuildArgs += "/p:$Key=$Value"
+            }
+            Write-Detail "  Extra:    $Key=$Value"
         }
     }
 
