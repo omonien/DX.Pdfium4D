@@ -109,7 +109,19 @@ type
 
   // Basic types
   FPDF_BOOL = type Integer;
-  FPDF_DWORD = type Cardinal;
+  // FPDF_DWORD mirrors C 'unsigned long': 32-bit on Windows (LLP64) and on
+  // 32-bit POSIX, 64-bit on 64-bit POSIX (LP64). Do NOT use this for fields
+  // declared 'unsigned int' (e.g. V8EmbedderSlot) or 'int' (e.g. the size
+  // argument to FPDF_LoadMemDocument) - those are always 32-bit.
+  {$IFDEF MSWINDOWS}
+  FPDF_DWORD = type Cardinal; // Always 32-bit on Windows (LLP64)
+  {$ELSE}
+    {$IFDEF CPU64BITS}
+  FPDF_DWORD = type UInt64;   // 64-bit on 64-bit POSIX (LP64)
+    {$ELSE}
+  FPDF_DWORD = type Cardinal; // 32-bit on 32-bit POSIX
+    {$ENDIF}
+  {$ENDIF}
   FPDF_WCHAR = type Word;
   FPDF_BYTESTRING = type PAnsiChar;
   FPDF_WIDESTRING = type PWideChar;
@@ -151,18 +163,18 @@ type
     Version: Integer;
     UserFontPaths: PPAnsiChar;
     Isolate: Pointer;
-    V8EmbedderSlot: Cardinal;
+    V8EmbedderSlot: FPDF_DWORD;
   end;
 
   // Callback function for custom file access
   // Returns non-zero if successful, zero for error
-  TFPDFFileAccessGetBlock = function(param: Pointer; position: Cardinal;
-    pBuf: PByte; size: Cardinal): Integer; cdecl;
+  TFPDFFileAccessGetBlock = function(param: Pointer; position: FPDF_DWORD;
+    pBuf: PByte; size: FPDF_DWORD): Integer; cdecl;
 
   // Structure for custom file access (streaming support)
   PFPDF_FILEACCESS = ^FPDF_FILEACCESS;
   FPDF_FILEACCESS = record
-    m_FileLen: Cardinal;        // Total file length in bytes
+    m_FileLen: FPDF_DWORD;      // Total file length in bytes
     m_GetBlock: TFPDFFileAccessGetBlock;  // Callback to read data blocks
     m_Param: Pointer;           // Custom user data passed to callback
   end;
@@ -173,7 +185,7 @@ procedure FPDF_InitLibraryWithConfig(const AConfig: PFPDF_LIBRARY_CONFIG); cdecl
 procedure FPDF_DestroyLibrary; cdecl; external PDFIUM_DLL;
 
 // Error handling
-function FPDF_GetLastError: Cardinal; cdecl; external PDFIUM_DLL;
+function FPDF_GetLastError: FPDF_DWORD; cdecl; external PDFIUM_DLL;
 
 // Document functions
 function FPDF_LoadDocument(const AFilePath: FPDF_STRING; const APassword: FPDF_BYTESTRING): FPDF_DOCUMENT; cdecl; external PDFIUM_DLL;
@@ -183,7 +195,7 @@ procedure FPDF_CloseDocument(ADocument: FPDF_DOCUMENT); cdecl; external PDFIUM_D
 function FPDF_GetPageCount(ADocument: FPDF_DOCUMENT): Integer; cdecl; external PDFIUM_DLL;
 function FPDF_GetFileVersion(ADocument: FPDF_DOCUMENT; var AFileVersion: Integer): FPDF_BOOL; cdecl; external PDFIUM_DLL;
 function FPDF_GetPageSizeByIndex(ADocument: FPDF_DOCUMENT; APageIndex: Integer; out AWidth: Double; out AHeight: Double): FPDF_BOOL; cdecl; external PDFIUM_DLL;
-function FPDF_GetMetaText(ADocument: FPDF_DOCUMENT; const ATag: FPDF_BYTESTRING; ABuffer: Pointer; ABufLen: Cardinal): Cardinal; cdecl; external PDFIUM_DLL;
+function FPDF_GetMetaText(ADocument: FPDF_DOCUMENT; const ATag: FPDF_BYTESTRING; ABuffer: Pointer; ABufLen: FPDF_DWORD): FPDF_DWORD; cdecl; external PDFIUM_DLL;
 
 // Page functions (fpdfview.h)
 function FPDF_LoadPage(ADocument: FPDF_DOCUMENT; APageIndex: Integer): FPDF_PAGE; cdecl; external PDFIUM_DLL;
@@ -222,7 +234,7 @@ function FPDFText_GetCharBox(ATextPage: FPDF_TEXTPAGE; AIndex: Integer; var ALef
 function FPDFText_GetCharIndexAtPos(ATextPage: FPDF_TEXTPAGE; AX, AY, AXTolerance, AYTolerance: Double): Integer; cdecl; external PDFIUM_DLL;
 function FPDFText_GetRect(ATextPage: FPDF_TEXTPAGE; AIndex: Integer; var ALeft, ATop, ARight, ABottom: Double): Boolean; cdecl; external PDFIUM_DLL;
 
-function FPDFText_FindStart(ATextPage: FPDF_TEXTPAGE; AFindwhat: PWideChar; AFlags: DWORD; AStartIndex: Integer): FPDF_SCHHANDLE; cdecl; external PDFIUM_DLL;
+function FPDFText_FindStart(ATextPage: FPDF_TEXTPAGE; AFindwhat: PWideChar; AFlags: FPDF_DWORD; AStartIndex: Integer): FPDF_SCHHANDLE; cdecl; external PDFIUM_DLL;
 function FPDFText_FindNext(ASchHandle: FPDF_SCHHANDLE): Boolean; cdecl; external PDFIUM_DLL;
 function FPDFText_FindPrev(ASchHandle: FPDF_SCHHANDLE): Boolean; cdecl; external PDFIUM_DLL;
 function FPDFText_GetSchResultIndex(ASchHandle: FPDF_SCHHANDLE): Integer; cdecl; external PDFIUM_DLL;
@@ -235,13 +247,13 @@ function FPDFText_GetBoundedText(ATextPage: FPDF_TEXTPAGE; ALeft, ATop, ARight, 
 // Bookmark functions
 function FPDFBookmark_GetFirstChild(ADocument: FPDF_DOCUMENT; ABookmark: FPDF_BOOKMARK): FPDF_BOOKMARK; cdecl; external PDFIUM_DLL;
 function FPDFBookmark_GetNextSibling(ADocument: FPDF_DOCUMENT; ABookmark: FPDF_BOOKMARK): FPDF_BOOKMARK; cdecl; external PDFIUM_DLL;
-function FPDFBookmark_GetTitle(ABookmark: FPDF_BOOKMARK; ABuffer: Pointer; ABufLen: Cardinal): Cardinal; cdecl; external PDFIUM_DLL;
+function FPDFBookmark_GetTitle(ABookmark: FPDF_BOOKMARK; ABuffer: Pointer; ABufLen: FPDF_DWORD): FPDF_DWORD; cdecl; external PDFIUM_DLL;
 function FPDFBookmark_GetDest(ADocument: FPDF_DOCUMENT; ABookmark: FPDF_BOOKMARK): FPDF_DEST; cdecl; external PDFIUM_DLL;
 
 // Helper functions
 function FPDF_BoolToBoolean(AValue: FPDF_BOOL): Boolean; inline;
 function BooleanToFPDF_Bool(AValue: Boolean): FPDF_BOOL; inline;
-function FPDF_ErrorToString(AError: Cardinal): string;
+function FPDF_ErrorToString(AError: FPDF_DWORD): string;
 
 implementation
 
@@ -258,7 +270,7 @@ begin
     Result := 0;
 end;
 
-function FPDF_ErrorToString(AError: Cardinal): string;
+function FPDF_ErrorToString(AError: FPDF_DWORD): string;
 begin
   case AError of
     FPDF_ERR_SUCCESS: Result := 'Success';
@@ -269,7 +281,7 @@ begin
     FPDF_ERR_SECURITY: Result := 'Unsupported security scheme';
     FPDF_ERR_PAGE: Result := 'Page not found or content error';
   else
-    Result := 'Unknown error code: ' + AError.ToString;
+    Result := Format('Unknown error code: %u', [AError]);
   end;
 end;
 
