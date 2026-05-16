@@ -93,7 +93,7 @@ The project includes **DX PDF Viewer** demo applications for both **FireMonkey (
 - macOS (Intel, Apple Silicon) - FMX
 - Android - FMX
 - iOS - FMX
-- Linux (Linux64) - core binding only; no viewer (FMXLinux is not assumed)
+- Linux (Linux64) - core binding only by default; optional FMX viewer via FMXLinux (see [Building on Linux with FMXLinux](#building-on-linux-with-fmxlinux))
 
 ### DX PDF Viewer Applications
 
@@ -196,6 +196,34 @@ end;
 ```
 
 For detailed usage see 📖 **[Using the DX.Pdf Wrapper Classes](USING_DX_PDF.md)**
+
+### Building on Linux with FMXLinux
+
+By default the Linux64 build includes only the core binding — the FMX viewer
+units (`DX.Pdf.Viewer.FMX`, `DX.Pdf.Renderer.FMX`) are excluded because the
+stock Delphi RTL does not ship FMX for Linux. [FMXLinux](https://www.fmxlinux.com/)
+(KSDev) is a third-party, commercial add-on, so this project does not
+assume it is installed.
+
+If you do have FMXLinux licensed and installed, you can opt in:
+
+1. Add the FMXLinux source path to **Tools → Options → Library → Library
+   Path** (for Linux64) in the Delphi IDE.
+2. Build with the `-FmxLinux` switch:
+
+   ```powershell
+   .\build-tests.ps1 -Platform Linux64 -FmxLinux
+   ```
+
+   The switch passes `/p:FmxLinux=true` to MSBuild, which defines
+   `HAS_FMXLINUX` for the test project and includes the FMX viewer.
+
+In your own projects, mirror the same pattern: gate FMX-dependent units
+with `{$IF not Defined(LINUX) or Defined(HAS_FMXLINUX)}` and define
+`HAS_FMXLINUX` in your Linux64 build configuration.
+
+See [issue #9](https://github.com/omonien/DX.Pdfium4D/issues/9) for the
+full rationale and the long-term plan.
 
 ---
 
