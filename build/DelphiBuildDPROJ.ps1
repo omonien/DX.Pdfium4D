@@ -33,6 +33,7 @@ param(
     [string]$Config = "",
     [string]$Platform = "",
     [string]$DelphiVersion = "",
+    [hashtable]$ExtraProperties = @{},
     [switch]$VerboseOutput
 )
 
@@ -188,6 +189,7 @@ function Build-DPROJProject {
         [string]$Config,
         [string]$Platform,
         [string]$MSBuild,
+        [hashtable]$ExtraProperties,
         [bool]$VerboseOutput
     )
 
@@ -213,6 +215,13 @@ function Build-DPROJProject {
         "/nologo",
         "/m"
     )
+
+    if ($ExtraProperties) {
+        foreach ($Key in $ExtraProperties.Keys) {
+            $MSBuildArgs += "/p:$Key=$($ExtraProperties[$Key])"
+            Write-Detail "  Extra:    $Key=$($ExtraProperties[$Key])"
+        }
+    }
 
     if ($VerboseOutput) {
         $MSBuildArgs += "/v:normal"
@@ -284,7 +293,7 @@ try {
     Write-Host ""
 
     # Build the project
-    $BuildSuccess = Build-DPROJProject -ProjectFile $ProjectFile -Config $Config -Platform $Platform -MSBuild $MSBuild -VerboseOutput $VerboseOutput
+    $BuildSuccess = Build-DPROJProject -ProjectFile $ProjectFile -Config $Config -Platform $Platform -MSBuild $MSBuild -ExtraProperties $ExtraProperties -VerboseOutput $VerboseOutput
 
     # Normalize boolean result
     $BuildResult = ($BuildSuccess -eq $true)

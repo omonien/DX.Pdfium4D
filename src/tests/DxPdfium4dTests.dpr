@@ -26,11 +26,13 @@ uses
   DUnitX.TestFramework,
   DX.Pdf.API in '..\DX.Pdf.API.pas',
   DX.Pdf.Document in '..\DX.Pdf.Document.pas',
-  {$IFNDEF LINUX}
-  // FMX is not available on Linux. The viewer unit is only pulled in here
-  // to keep it compile-checked alongside the core binding.
+  {$IF not Defined(LINUX) or Defined(HAS_FMXLINUX)}
+  // FMX is not part of the stock Delphi RTL on Linux. The viewer unit is
+  // only pulled in here to keep it compile-checked alongside the core
+  // binding. On Linux it is excluded by default; define HAS_FMXLINUX
+  // (and make FMXLinux available on the Library Path) to include it.
   DX.Pdf.Viewer.FMX in '..\DX.Pdf.Viewer.FMX.pas',
-  {$ENDIF}
+  {$IFEND}
   DX.Pdf.Document.Tests in 'DX.Pdf.Document.Tests.pas',
   DX.Pdf.CheatSheets.Tests in 'DX.Pdf.CheatSheets.Tests.pas',
   DX.Pdf.Extended.Tests in 'DX.Pdf.Extended.Tests.pas',

@@ -6,6 +6,11 @@
 #   .\build-tests.ps1 -Platform Win32          # Build Win32 Debug
 #   .\build-tests.ps1 -Run                     # Build and run tests
 #   .\build-tests.ps1 -Platform Win32 -Run     # Build Win32 and run
+#   .\build-tests.ps1 -Platform Linux64 -FmxLinux
+#                                              # Build Linux64 WITH FMXLinux
+#                                              # viewer support (requires
+#                                              # FMXLinux on the IDE Library
+#                                              # Path; see issue #9).
 # =============================================================================
 
 param(
@@ -13,6 +18,7 @@ param(
     [string]$Platform = "Win64",
     [string]$DelphiVersion = "",
     [switch]$Run,
+    [switch]$FmxLinux,
     [switch]$VerboseOutput
 )
 
@@ -36,6 +42,10 @@ $BuildArgs = @{
 }
 if ($DelphiVersion) { $BuildArgs.DelphiVersion = $DelphiVersion }
 if ($VerboseOutput) { $BuildArgs.VerboseOutput = $true }
+if ($FmxLinux) {
+    $BuildArgs.ExtraProperties = @{ FmxLinux = "true" }
+    Write-Host "FMXLinux opt-in is ON (defines HAS_FMXLINUX, includes FMX viewer on Linux)" -ForegroundColor Yellow
+}
 
 & $BuildScript @BuildArgs
 if ($LASTEXITCODE -ne 0) { exit 1 }
