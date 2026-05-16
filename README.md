@@ -93,6 +93,7 @@ The project includes **DX PDF Viewer** demo applications for both **FireMonkey (
 - macOS (Intel, Apple Silicon) - FMX
 - Android - FMX
 - iOS - FMX
+- Linux (Linux64) - core binding only; no viewer (FMXLinux is not assumed)
 
 ### DX PDF Viewer Applications
 

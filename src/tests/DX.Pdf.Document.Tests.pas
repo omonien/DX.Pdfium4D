@@ -21,7 +21,6 @@ uses
   System.SysUtils,
   System.Classes,
   System.IOUtils,
-  FMX.Graphics,
   DX.Pdf.API,
   DX.Pdf.Document;
 
