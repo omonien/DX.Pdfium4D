@@ -44,7 +44,11 @@ if ($DelphiVersion) { $BuildArgs.DelphiVersion = $DelphiVersion }
 if ($VerboseOutput) { $BuildArgs.VerboseOutput = $true }
 if ($FmxLinux) {
     $BuildArgs.ExtraProperties = @{ FmxLinux = "true" }
-    Write-Host "FMXLinux opt-in is ON (defines HAS_FMXLINUX, includes FMX viewer on Linux)" -ForegroundColor Yellow
+    if ($Platform -eq "Linux64") {
+        Write-Host "FMXLinux opt-in is ON: defines HAS_FMXLINUX, includes FMX viewer." -ForegroundColor Yellow
+    } else {
+        Write-Host "FMXLinux switch passed but Platform is $Platform - no-op (Linux64 only)." -ForegroundColor DarkYellow
+    }
 }
 
 & $BuildScript @BuildArgs

@@ -127,11 +127,12 @@
     </PropertyGroup>
     <!--
         Optional FMXLinux opt-in (see issue #9). When the build script
-        passes /p:FmxLinux=true (or the IDE has the FmxLinux property set),
-        define HAS_FMXLINUX so the .dpr pulls in the FMX viewer on Linux64
-        too. Requires FMXLinux on the IDE Library Path. Default is off.
+        passes /p:FmxLinux=true on a Linux64 build, define HAS_FMXLINUX so
+        the .dpr pulls in the FMX viewer. Requires FMXLinux on the IDE
+        Library Path. Default is off. The Platform gate keeps the define
+        Linux-only - passing -FmxLinux on Win/Mac/Android/iOS is a no-op.
     -->
-    <PropertyGroup Condition="'$(FmxLinux)'=='true'">
+    <PropertyGroup Condition="'$(FmxLinux)'=='true' and '$(Platform)'=='Linux64'">
         <DCC_Define>HAS_FMXLINUX;$(DCC_Define)</DCC_Define>
     </PropertyGroup>
     <ItemGroup>

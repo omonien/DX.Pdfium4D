@@ -209,9 +209,11 @@ If you do have FMXLinux licensed and installed, you can opt in:
 
 1. Add the FMXLinux source path to **Tools → Options → Library → Library
    Path** (for Linux64) in the Delphi IDE.
-2. Build with the `-FmxLinux` switch:
+2. Build with the `-FmxLinux` switch (run from the `build/` directory,
+   matching the Quick Start above):
 
    ```powershell
+   cd build
    .\build-tests.ps1 -Platform Linux64 -FmxLinux
    ```
 
