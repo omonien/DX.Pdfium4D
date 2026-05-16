@@ -8,12 +8,18 @@
 #   .\DelphiBuildDPROJ.ps1 -ProjectFile "MyProject.dproj"
 #   .\DelphiBuildDPROJ.ps1 -ProjectFile "MyProject.dproj" -Config Release -Platform Win64
 #   .\DelphiBuildDPROJ.ps1 -ProjectFile "MyProject.dproj" -DelphiVersion "23.0" -VerboseOutput
+#   .\DelphiBuildDPROJ.ps1 -ProjectFile "MyProject.dproj" -ExtraProperties @{ Foo = "bar" }
 #
 # PARAMETERS:
 #   -ProjectFile     : Path to the .dproj file to build (mandatory)
 #   -Config          : Build configuration (default: "Debug")
 #   -Platform        : Target platform (default: "Win64")
 #   -DelphiVersion   : Delphi version to use (default: auto-detect latest)
+#   -ExtraProperties : Hashtable of extra MSBuild /p:Key=Value properties to
+#                      forward to the project build (default: empty).
+#                      Values containing whitespace are auto-quoted; simple
+#                      tokens stay unquoted so MSBuild conditions like
+#                      '$(Foo)'=='bar' match correctly.
 #   -VerboseOutput   : Enable verbose MSBuild output
 #
 # REQUIREMENTS:
