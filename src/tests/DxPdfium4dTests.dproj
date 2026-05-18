@@ -125,13 +125,23 @@
     <PropertyGroup Condition="'$(Cfg_2_iOSDevice64)'!=''">
         <BT_BuildType>Debug</BT_BuildType>
     </PropertyGroup>
+    <!--
+        Optional FMXLinux opt-in (see issue #9). When the build script
+        passes /p:FmxLinux=true on a Linux64 build, define HAS_FMXLINUX so
+        the .dpr pulls in the FMX viewer. Requires FMXLinux on the IDE
+        Library Path. Default is off. The Platform gate keeps the define
+        Linux-only - passing -FmxLinux on Win/Mac/Android/iOS is a no-op.
+    -->
+    <PropertyGroup Condition="'$(FmxLinux)'=='true' and '$(Platform)'=='Linux64'">
+        <DCC_Define>HAS_FMXLINUX;$(DCC_Define)</DCC_Define>
+    </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="..\DX.Pdf.API.pas"/>
         <DCCReference Include="..\DX.Pdf.Document.pas"/>
-        <DCCReference Include="..\DX.Pdf.Viewer.FMX.pas" Condition="'$(Platform)'!='Linux64'"/>
+        <DCCReference Include="..\DX.Pdf.Viewer.FMX.pas" Condition="'$(Platform)'!='Linux64' or '$(FmxLinux)'=='true'"/>
         <DCCReference Include="DX.Pdf.Document.Tests.pas"/>
         <DCCReference Include="DX.Pdf.CheatSheets.Tests.pas"/>
         <DCCReference Include="DX.Pdf.Extended.Tests.pas"/>

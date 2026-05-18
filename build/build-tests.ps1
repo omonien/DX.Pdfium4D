@@ -6,6 +6,11 @@
 #   .\build-tests.ps1 -Platform Win32          # Build Win32 Debug
 #   .\build-tests.ps1 -Run                     # Build and run tests
 #   .\build-tests.ps1 -Platform Win32 -Run     # Build Win32 and run
+#   .\build-tests.ps1 -Platform Linux64 -FmxLinux
+#                                              # Build Linux64 WITH FMXLinux
+#                                              # viewer support (requires
+#                                              # FMXLinux on the IDE Library
+#                                              # Path; see issue #9).
 # =============================================================================
 
 param(
@@ -13,6 +18,7 @@ param(
     [string]$Platform = "Win64",
     [string]$DelphiVersion = "",
     [switch]$Run,
+    [switch]$FmxLinux,
     [switch]$VerboseOutput
 )
 
@@ -36,6 +42,17 @@ $BuildArgs = @{
 }
 if ($DelphiVersion) { $BuildArgs.DelphiVersion = $DelphiVersion }
 if ($VerboseOutput) { $BuildArgs.VerboseOutput = $true }
+if ($FmxLinux) {
+    $BuildArgs.ExtraProperties = @{ FmxLinux = "true" }
+    if ($Platform -eq "Linux64") {
+        Write-Host "FMXLinux opt-in is ON: defines HAS_FMXLINUX, includes FMX viewer." -ForegroundColor Yellow
+    } else {
+        # The /p:FmxLinux=true property is still forwarded to MSBuild here,
+        # but the .dproj only consumes it under Platform=Linux64, so the
+        # define and the conditional DCCReference both stay inert.
+        Write-Host "FMXLinux switch is ignored on Platform $Platform (Linux64-only opt-in; property is still forwarded but has no effect)." -ForegroundColor DarkYellow
+    }
+}
 
 & $BuildScript @BuildArgs
 if ($LASTEXITCODE -ne 0) { exit 1 }

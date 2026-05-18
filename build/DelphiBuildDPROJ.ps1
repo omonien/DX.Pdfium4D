@@ -8,12 +8,18 @@
 #   .\DelphiBuildDPROJ.ps1 -ProjectFile "MyProject.dproj"
 #   .\DelphiBuildDPROJ.ps1 -ProjectFile "MyProject.dproj" -Config Release -Platform Win64
 #   .\DelphiBuildDPROJ.ps1 -ProjectFile "MyProject.dproj" -DelphiVersion "23.0" -VerboseOutput
+#   .\DelphiBuildDPROJ.ps1 -ProjectFile "MyProject.dproj" -ExtraProperties @{ Foo = "bar" }
 #
 # PARAMETERS:
 #   -ProjectFile     : Path to the .dproj file to build (mandatory)
 #   -Config          : Build configuration (default: "Debug")
 #   -Platform        : Target platform (default: "Win64")
 #   -DelphiVersion   : Delphi version to use (default: auto-detect latest)
+#   -ExtraProperties : Hashtable of extra MSBuild /p:Key=Value properties to
+#                      forward to the project build (default: empty).
+#                      Values containing whitespace are auto-quoted; simple
+#                      tokens stay unquoted so MSBuild conditions like
+#                      '$(Foo)'=='bar' match correctly.
 #   -VerboseOutput   : Enable verbose MSBuild output
 #
 # REQUIREMENTS:
@@ -33,6 +39,7 @@ param(
     [string]$Config = "",
     [string]$Platform = "",
     [string]$DelphiVersion = "",
+    [hashtable]$ExtraProperties = @{},
     [switch]$VerboseOutput
 )
 
@@ -188,6 +195,7 @@ function Build-DPROJProject {
         [string]$Config,
         [string]$Platform,
         [string]$MSBuild,
+        [hashtable]$ExtraProperties,
         [bool]$VerboseOutput
     )
 
@@ -213,6 +221,36 @@ function Build-DPROJProject {
         "/nologo",
         "/m"
     )
+
+    if ($ExtraProperties) {
+        foreach ($Key in $ExtraProperties.Keys) {
+            # PowerShell -> MSBuild quoting is a two-step trap:
+            #   1. PowerShell splits the call-operator arguments on whitespace.
+            #      So `/p:Foo=hello world` would arrive at msbuild as the two
+            #      arguments `/p:Foo=hello` and `world` - msbuild then either
+            #      drops the trailing token or errors.
+            #   2. MSBuild treats any quotes inside `/p:Key=Value` as part of
+            #      the property value, so `/p:Foo="true"` sets $(Foo) to the
+            #      literal string `"true"` (including the quotes) and a
+            #      condition like '$(Foo)'=='true' silently fails to match.
+            #
+            # So we quote only when there's no other way to keep PowerShell
+            # from splitting the token. Simple tokens stay unquoted, which is
+            # the common case (`FmxLinux=true`, `DefineConstants=FOO;BAR`,
+            # etc.). Whitespace-bearing values (e.g. paths) are passed with
+            # embedded quotes - this is the unavoidable MSBuild caveat: the
+            # quotes survive into $(Key), so downstream conditions and tool
+            # arguments must tolerate them or strip them. Encode whitespace
+            # out-of-band (e.g. via short-paths) when this matters.
+            $Value = [string]$ExtraProperties[$Key]
+            if ($Value -match '\s') {
+                $MSBuildArgs += "/p:$Key=`"$Value`""
+            } else {
+                $MSBuildArgs += "/p:$Key=$Value"
+            }
+            Write-Detail "  Extra:    $Key=$Value"
+        }
+    }
 
     if ($VerboseOutput) {
         $MSBuildArgs += "/v:normal"
@@ -284,7 +322,7 @@ try {
     Write-Host ""
 
     # Build the project
-    $BuildSuccess = Build-DPROJProject -ProjectFile $ProjectFile -Config $Config -Platform $Platform -MSBuild $MSBuild -VerboseOutput $VerboseOutput
+    $BuildSuccess = Build-DPROJProject -ProjectFile $ProjectFile -Config $Config -Platform $Platform -MSBuild $MSBuild -ExtraProperties $ExtraProperties -VerboseOutput $VerboseOutput
 
     # Normalize boolean result
     $BuildResult = ($BuildSuccess -eq $true)
