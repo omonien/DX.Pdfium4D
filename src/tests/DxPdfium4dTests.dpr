@@ -32,7 +32,7 @@ uses
   // binding. On Linux it is excluded by default; define HAS_FMXLINUX
   // (and make FMXLinux available on the Library Path) to include it.
   DX.Pdf.Viewer.FMX in '..\DX.Pdf.Viewer.FMX.pas',
-  {$IFEND}
+  {$ENDIF}
   DX.Pdf.Document.Tests in 'DX.Pdf.Document.Tests.pas',
   DX.Pdf.CheatSheets.Tests in 'DX.Pdf.CheatSheets.Tests.pas',
   DX.Pdf.Extended.Tests in 'DX.Pdf.Extended.Tests.pas',
