@@ -47,7 +47,10 @@ if ($FmxLinux) {
     if ($Platform -eq "Linux64") {
         Write-Host "FMXLinux opt-in is ON: defines HAS_FMXLINUX, includes FMX viewer." -ForegroundColor Yellow
     } else {
-        Write-Host "FMXLinux switch passed but Platform is $Platform - no-op (Linux64 only)." -ForegroundColor DarkYellow
+        # The /p:FmxLinux=true property is still forwarded to MSBuild here,
+        # but the .dproj only consumes it under Platform=Linux64, so the
+        # define and the conditional DCCReference both stay inert.
+        Write-Host "FMXLinux switch is ignored on Platform $Platform (Linux64-only opt-in; property is still forwarded but has no effect)." -ForegroundColor DarkYellow
     }
 }
 
