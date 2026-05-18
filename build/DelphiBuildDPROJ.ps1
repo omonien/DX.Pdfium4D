@@ -224,11 +224,24 @@ function Build-DPROJProject {
 
     if ($ExtraProperties) {
         foreach ($Key in $ExtraProperties.Keys) {
-            # MSBuild treats embedded quotes in /p:Key=Value as part of the
-            # property value (so "true" != true), so only quote when the
-            # value actually contains whitespace - paths and the like still
-            # survive PowerShell -> MSBuild argument splitting, but simple
-            # tokens stay simple.
+            # PowerShell -> MSBuild quoting is a two-step trap:
+            #   1. PowerShell splits the call-operator arguments on whitespace.
+            #      So `/p:Foo=hello world` would arrive at msbuild as the two
+            #      arguments `/p:Foo=hello` and `world` - msbuild then either
+            #      drops the trailing token or errors.
+            #   2. MSBuild treats any quotes inside `/p:Key=Value` as part of
+            #      the property value, so `/p:Foo="true"` sets $(Foo) to the
+            #      literal string `"true"` (including the quotes) and a
+            #      condition like '$(Foo)'=='true' silently fails to match.
+            #
+            # So we quote only when there's no other way to keep PowerShell
+            # from splitting the token. Simple tokens stay unquoted, which is
+            # the common case (`FmxLinux=true`, `DefineConstants=FOO;BAR`,
+            # etc.). Whitespace-bearing values (e.g. paths) are passed with
+            # embedded quotes - this is the unavoidable MSBuild caveat: the
+            # quotes survive into $(Key), so downstream conditions and tool
+            # arguments must tolerate them or strip them. Encode whitespace
+            # out-of-band (e.g. via short-paths) when this matters.
             $Value = [string]$ExtraProperties[$Key]
             if ($Value -match '\s') {
                 $MSBuildArgs += "/p:$Key=`"$Value`""
