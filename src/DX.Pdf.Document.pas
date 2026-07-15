@@ -44,8 +44,8 @@ type
     FStream: TStream;
     FFileAccess: FPDF_FILEACCESS;
     FOwnsStream: Boolean;
-    class function GetBlockCallback(param: Pointer; position: Cardinal;
-      pBuf: PByte; size: Cardinal): Integer; cdecl; static;
+    class function GetBlockCallback(param: Pointer; position: FPDF_DWORD;
+      pBuf: PByte; size: FPDF_DWORD): Integer; cdecl; static;
   public
     constructor Create(AStream: TStream; AOwnsStream: Boolean = False);
     destructor Destroy; override;
@@ -74,7 +74,7 @@ type
     function FindPrev: Boolean;
     function GetResultIndex: Integer;
     function GetCount: Integer;
-    constructor Create(APage: TPdfPage; const AFindwhat: string; const AFlags: DWORD; const AStartIndex: Integer); reintroduce;
+    constructor Create(APage: TPdfPage; const AFindwhat: string; const AFlags: FPDF_DWORD; const AStartIndex: Integer); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -122,10 +122,25 @@ type
     /// </summary>
     property Handle: FPDF_PAGE read FHandle;
 
+    /// <summary>
+    /// Internal PDFium text page handle
+    /// </summary>
+    property TextHandle: FPDF_TEXTPAGE read FHandleText;
+
+    /// <summary>
+    /// Returns the number of characters on this page
+    /// </summary>
+    function GetCharCount: Integer;
+
+    /// <summary>
+    /// Extracts text from the page
+    /// </summary>
+    function GetText(AStartIndex: Integer; ACount: Integer): string;
+
     function GetCharBox(const AIndex: Integer): TRectF;
     function GetCharIndexAtPos(const AX, AY, AXTolerance, AYTolerance: Double): Integer;
     function GetCharRect(const AIndex: Integer; var ARect: TRectF): Boolean;
-    function FindStart(const AFindwhat: string; const AFlags: DWORD; const AStartIndex: Integer): IPageSearch;
+    function FindStart(const AFindwhat: string; const AFlags: FPDF_DWORD; const AStartIndex: Integer): IPageSearch;
 
     function CountRects(const AStartIndex, ACount: Integer): Integer;
     function GetBoundedText(const ARect: TRectF; const ABuffer: string): Integer;
@@ -140,6 +155,8 @@ type
     FPageCount: Integer;
     FFileName: string;
     FStreamAdapter: TPdfStreamAdapter; // Stream adapter must remain valid while document is open!
+    FPages: TArray<TPdfPage>;
+    function GetPage(AIndex: Integer): TPdfPage;
   public
     constructor Create;
     destructor Destroy; override;
@@ -212,6 +229,13 @@ type
     /// Internal PDFium document handle
     /// </summary>
     property Handle: FPDF_DOCUMENT read FHandle;
+
+    /// <summary>
+    /// Provides cached, indexed access to the document pages.
+    /// Pages are created on first access and managed by the document.
+    /// The document owns the page instances - do NOT free them manually.
+    /// </summary>
+    property Pages[AIndex: Integer]: TPdfPage read GetPage; default;
   end;
 
   /// <summary>
@@ -300,11 +324,11 @@ begin
   inherited;
 end;
 
-class function TPdfStreamAdapter.GetBlockCallback(param: Pointer; position: Cardinal;
-  pBuf: PByte; size: Cardinal): Integer;
+class function TPdfStreamAdapter.GetBlockCallback(param: Pointer; position: FPDF_DWORD;
+  pBuf: PByte; size: FPDF_DWORD): Integer;
 var
   LAdapter: TPdfStreamAdapter;
-  LBytesRead: Integer;
+  LBytesRead: Int64;
 begin
   Result := 0;  // Default: error
 
@@ -321,7 +345,7 @@ begin
     LBytesRead := LAdapter.FStream.Read(pBuf^, size);
 
     // Return success if we read the expected amount
-    if LBytesRead = Integer(size) then
+    if LBytesRead = Int64(size) then
       Result := 1  // Success
     else
       Result := 0; // Error: couldn't read full block
@@ -389,6 +413,7 @@ begin
   FPageCount := 0;
   FFileName := '';
   FStreamAdapter := nil;
+  FPages := nil;
   TPdfLibrary.Initialize;
 end;
 
@@ -399,11 +424,27 @@ begin
   inherited;
 end;
 
+function TPdfDocument.GetPage(AIndex: Integer): TPdfPage;
+begin
+  if not IsLoaded then
+    raise EPdfPageException.Create('No document loaded');
+
+  if (AIndex < 0) or (AIndex >= FPageCount) then
+    raise EPdfPageException.CreateFmt('Page index out of range: %d (valid range: 0-%d)',
+      [AIndex, FPageCount - 1]);
+
+  // Lazy creation: only create page instance on first access
+  if FPages[AIndex] = nil then
+    FPages[AIndex] := TPdfPage.Create(Self, AIndex);
+
+  Result := FPages[AIndex];
+end;
+
 procedure TPdfDocument.LoadFromFile(const AFileName: string; const APassword: string = '');
 var
   LPasswordAnsi: AnsiString;
   LFilePathUtf8: UTF8String;
-  LError: Cardinal;
+  LError: FPDF_DWORD;
 begin
   Close;
 
@@ -426,12 +467,13 @@ begin
 
   FFileName := AFileName;
   FPageCount := FPDF_GetPageCount(FHandle);
+  SetLength(FPages, FPageCount);
 end;
 
 procedure TPdfDocument.LoadFromStream(AStream: TStream; AOwnsStream: Boolean; const APassword: string);
 var
   LPasswordAnsi: AnsiString;
-  LError: Cardinal;
+  LError: FPDF_DWORD;
 begin
   Close;
 
@@ -458,10 +500,18 @@ begin
 
   FFileName := '';
   FPageCount := FPDF_GetPageCount(FHandle);
+  SetLength(FPages, FPageCount);
 end;
 
 procedure TPdfDocument.Close;
+var
+  I: Integer;
 begin
+  // Free all cached page instances before closing the document
+  for I := 0 to High(FPages) do
+    FreeAndNil(FPages[I]);
+  FPages := nil;
+
   if FHandle <> nil then
   begin
     FPDF_CloseDocument(FHandle);
@@ -469,7 +519,7 @@ begin
     FPageCount := 0;
     FFileName := '';
   end;
-  FreeAndNil(FStreamAdapter);   // Free stream adapter (and optionally the stream)
+  FreeAndNil(FStreamAdapter);
 end;
 
 function TPdfDocument.IsLoaded: Boolean;
@@ -513,7 +563,7 @@ end;
 
 function TPdfDocument.GetMetadata(const ATag: string): string;
 var
-  LBufLen: Cardinal;
+  LBufLen: FPDF_DWORD;
   LBuffer: array of WideChar;
   LTagAnsi: AnsiString;
 begin
@@ -637,7 +687,21 @@ begin
   inherited;
 end;
 
-function TPdfPage.FindStart(const AFindwhat: string; const AFlags: DWORD; const AStartIndex: Integer): IPageSearch;
+function TPdfPage.GetCharCount: Integer;
+begin
+  Result := FPDFText_CountChars(FHandleText);
+end;
+
+function TPdfPage.GetText(AStartIndex: Integer; ACount: Integer): string;
+var
+  LBuffer: array of WideChar;
+begin
+  SetLength(LBuffer, ACount + 1);
+  FPDFText_GetText(FHandleText, AStartIndex, ACount, @LBuffer[0]);
+  Result := string(PWideChar(@LBuffer[0]));
+end;
+
+function TPdfPage.FindStart(const AFindwhat: string; const AFlags: FPDF_DWORD; const AStartIndex: Integer): IPageSearch;
 begin
   Result := TPageSearch.Create(Self, AFindwhat, AFlags, AStartIndex);
 end;
@@ -681,7 +745,7 @@ end;
 
 { TPageSearch }
 
-constructor TPageSearch.Create(APage: TPdfPage; const AFindwhat: string; const AFlags: DWORD; const AStartIndex: Integer);
+constructor TPageSearch.Create(APage: TPdfPage; const AFindwhat: string; const AFlags: FPDF_DWORD; const AStartIndex: Integer);
 begin
   inherited Create;
   FPage := APage;

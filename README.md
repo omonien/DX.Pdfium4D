@@ -9,14 +9,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/omonien/DX-Pdfium4D/blob/main/LICENSE">
+  <a href="https://github.com/omonien/DX.Pdfium4D/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
   </a>
   <a href="https://www.embarcadero.com/products/delphi">
     <img src="https://img.shields.io/badge/Delphi-12%2B-red.svg" alt="Delphi Version">
   </a>
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Android%20%7C%20iOS-lightgrey.svg" alt="Platforms">
-  <img src="https://img.shields.io/badge/framework-FireMonkey-orange.svg" alt="Framework">
+  <img src="https://img.shields.io/badge/framework-FMX%20%7C%20VCL-orange.svg" alt="Framework">
   <a href="https://pdfium.googlesource.com/pdfium/">
     <img src="https://img.shields.io/badge/PDFium-Google-4285F4.svg" alt="PDFium">
   </a>
@@ -37,15 +37,16 @@
 
 **DX Pdfium4D** is a comprehensive Delphi wrapper for Google's PDFium library, providing object-oriented classes for PDF document handling in cross-platform Delphi applications.
 
-The project includes **DX PDF Viewer**, a minimalistic cross-platform PDF viewer application built with FireMonkey (FMX), which serves as a practical demonstration of the wrapper's capabilities and showcases modern Delphi development practices.
+The project includes **DX PDF Viewer** demo applications for both **FireMonkey (FMX)** and **VCL**, which serve as practical demonstrations of the wrapper's capabilities and showcase modern Delphi development practices.
 
 ### Why DX Pdfium4D?
 
 - ✅ **Type-safe, object-oriented API** - No more dealing with raw C pointers
-- ✅ **Automatic resource management** - Reference counting prevents memory leaks
+- ✅ **Automatic resource management** - Destructors handle PDFium cleanup automatically
 - ✅ **Cross-platform** - Windows, macOS, Android, iOS
+- ✅ **FMX and VCL support** - Works with both FireMonkey and VCL frameworks
 - ✅ **Well-documented** - Comprehensive documentation and examples
-- ✅ **Production-ready** - Includes unit tests and example application
+- ✅ **Production-ready** - Includes unit tests and demo applications
 - ✅ **MIT Licensed** - Free for commercial and open-source projects
 
 ---
@@ -54,10 +55,7 @@ The project includes **DX PDF Viewer**, a minimalistic cross-platform PDF viewer
 
 - [Overview](#overview)
 - [Features](#features)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Quick Start](#quick-start)
+- [Quick Start](#quick-start)
 - [Documentation](#documentation)
 - [Examples](#examples)
 - [Project Structure](#project-structure)
@@ -75,7 +73,7 @@ The project includes **DX PDF Viewer**, a minimalistic cross-platform PDF viewer
 
 🔧 **Object-Oriented API**
 - High-level Delphi classes wrapping PDFium C-API
-- Automatic resource management with reference counting
+- Automatic PDFium resource cleanup in destructors
 - Type-safe, exception-based error handling
 
 📄 **PDF Document Support**
@@ -88,19 +86,26 @@ The project includes **DX PDF Viewer**, a minimalistic cross-platform PDF viewer
 - High-quality bitmap rendering
 - Configurable DPI support
 - Platform-independent rendering
+- Separate renderers for FMX and VCL
 
 🌍 **Cross-Platform**
-- Windows (Win32, Win64)
-- macOS (Intel, Apple Silicon)
-- Android
-- iOS
+- Windows (Win32, Win64) - FMX and VCL
+- macOS (Intel, Apple Silicon) - FMX
+- Android - FMX
+- iOS - FMX
+- Linux (Linux64) - core binding only by default; optional FMX viewer via FMXLinux (see [Building on Linux with FMXLinux](#building-on-linux-with-fmxlinux))
 
-### DX PDF Viewer Application
+### DX PDF Viewer Applications
+
+✨ **Two Implementations**
+- **FMX Viewer** - Cross-platform (Windows, macOS, Android, iOS)
+- **VCL Viewer** - Windows-only with native Windows controls
 
 ✨ **Minimalistic Design**
 - Clean, distraction-free interface
 - Focus on content, not chrome
-- Modern Material Design-inspired UI
+- Modern Material Design-inspired UI (FMX)
+- Native Windows look and feel (VCL)
 
 🎯 **User-Friendly**
 - Drag & Drop PDF files to open
@@ -112,91 +117,115 @@ The project includes **DX PDF Viewer**, a minimalistic cross-platform PDF viewer
 - Background rendering for smooth UI
 - Efficient memory management
 - Fast page switching
+- Proper aspect ratio preservation
+- Centered display with visual feedback
 
 ---
 
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
-- **Delphi 12 or later** (tested with Delphi 12.2 Athens)
-  - Minimum: Delphi XE2 (for FireMonkey support)
-  - Recommended: Delphi 10.x or later for best cross-platform support
-- **PDFium Library** (included in `lib/pdfium-bin`)
+- **Delphi 12 or 13** (tested with Delphi 12.3 Athens and Delphi 13 Florence)
+- **GitHub CLI (`gh`)** - for automatic PDFium download
 
-### Installation
-
-#### Option 1: Clone the Repository
+### 1. Clone and Setup
 
 ```bash
-git clone https://github.com/omonien/DX-Pdfium4D.git
-cd DX-Pdfium4D
+git clone --recurse-submodules https://github.com/omonien/DX.Pdfium4D.git
+cd DX.Pdfium4D
 ```
 
-#### Option 2: Download Release
+Download the PDFium binary:
 
-Download the latest release from the [Releases](https://github.com/omonien/DX-Pdfium4D/releases) page.
+```powershell
+cd build
+.\copy-pdfium-dll.ps1 -Platform Win64              # Win64 Debug (default)
+.\copy-pdfium-dll.ps1 -Platform Win32              # Win32 Debug
+.\copy-pdfium-dll.ps1 -Platform Win64 -Config Release  # Win64 Release
+```
 
-### Quick Start
+The script downloads the latest PDFium release from [bblanchon/pdfium-binaries](https://github.com/bblanchon/pdfium-binaries) and caches it locally.
 
-#### Using the Wrapper in Your Project
+### 2. Build and Run
 
-1. **Add the wrapper units to your project:**
-   ```pascal
-   uses
-     DX.Pdf.API,        // Low-level PDFium C-API bindings
-     DX.Pdf.Document,   // High-level document/page classes
-     DX.Pdf.Viewer.FMX; // (Optional) FMX visual component
+**From Delphi IDE:**
+1. Open `src/PdfViewer/DX.PdfViewer.dproj` (FMX) or `src/PdfViewerVCL/DX.PdfViewerVCL.dproj` (VCL)
+2. Press **F9** to build and run
+
+**From command line (PowerShell):**
+```powershell
+cd build
+.\build-tests.ps1 -Run                        # Build and run tests
+.\build-release.ps1 -Version "v1.0.0"         # Build release (FMX + VCL, Win32 + Win64)
+```
+
+All build output goes to `build/<Platform>/<Config>/` (e.g., `build/Win64/Debug/`).
+
+### 3. Use in Your Own Project
+
+```pascal
+uses
+  DX.Pdf.API,          // Low-level PDFium C-API bindings
+  DX.Pdf.Document,     // High-level document/page classes
+  DX.Pdf.Viewer.FMX,   // (Optional) FMX visual component
+  DX.Pdf.Viewer.VCL;   // (Optional) VCL visual component
+```
+
+Ensure `pdfium.dll` is in your output directory, then:
+
+```pascal
+var
+  LDocument: TPdfDocument;
+  LPage: TPdfPage;
+  LBitmap: TBitmap;
+begin
+  LDocument := TPdfDocument.Create('document.pdf');
+  try
+    LPage := LDocument.Pages[0];
+    LBitmap := LPage.RenderToBitmap(96); // 96 DPI
+    try
+      // Use the bitmap
+    finally
+      LBitmap.Free;
+    end;
+  finally
+    LDocument.Free;
+  end;
+end;
+```
+
+For detailed usage see 📖 **[Using the DX.Pdf Wrapper Classes](USING_DX_PDF.md)**
+
+### Building on Linux with FMXLinux
+
+By default the Linux64 build includes only the core binding — the FMX viewer
+units (`DX.Pdf.Viewer.FMX`, `DX.Pdf.Renderer.FMX`) are excluded because the
+stock Delphi RTL does not ship FMX for Linux. [FMXLinux](https://www.fmxlinux.com/)
+(KSDev) is a third-party, commercial add-on, so this project does not
+assume it is installed.
+
+If you do have FMXLinux licensed and installed, you can opt in:
+
+1. Add the FMXLinux source path to **Tools → Options → Library → Library
+   Path** (for Linux64) in the Delphi IDE.
+2. Build with the `-FmxLinux` switch (run from the `build/` directory,
+   matching the Quick Start above):
+
+   ```powershell
+   cd build
+   .\build-tests.ps1 -Platform Linux64 -FmxLinux
    ```
 
-2. **Include PDFium library:**
-   - Copy the appropriate PDFium DLL/dylib/so from `lib/pdfium-bin` to your output directory
-   - Windows: `pdfium.dll`
-   - macOS: `libpdfium.dylib`
-   - Linux: `libpdfium.so`
+   The switch passes `/p:FmxLinux=true` to MSBuild, which defines
+   `HAS_FMXLINUX` for the test project and includes the FMX viewer.
 
-3. **Load and render a PDF:**
-   ```pascal
-   var
-     LDocument: TPdfDocument;
-     LPage: TPdfPage;
-     LBitmap: TBitmap;
-   begin
-     LDocument := TPdfDocument.Create('document.pdf');
-     try
-       LPage := LDocument.Pages[0];
-       LBitmap := LPage.RenderToBitmap(96); // 96 DPI
-       try
-         // Use the bitmap
-       finally
-         LBitmap.Free;
-       end;
-     finally
-       LDocument.Free;
-     end;
-   end;
-   ```
+In your own projects, mirror the same pattern: gate FMX-dependent units
+with `{$IF not Defined(LINUX) or Defined(HAS_FMXLINUX)}` and define
+`HAS_FMXLINUX` in your Linux64 build configuration.
 
-4. **See the full documentation:**
-   - 📖 **[Using the DX.Pdf Wrapper Classes](USING_DX_PDF.md)**
-
-#### Building the DX PDF Viewer Example
-
-1. **Open the project:**
-   - Open `src/PdfViewer/DX.PdfViewer.dproj` in Delphi IDE
-
-2. **Build and run:**
-   - Press **F9** or select **Run → Run**
-   - The PDFium DLL will be automatically copied to the output directory
-
-3. **Run from command line:**
-   ```bash
-   # Windows
-   src\PdfViewer\Win32\Debug\DX.PdfViewer.exe path\to\document.pdf
-
-   # macOS
-   ./DX.PdfViewer document.pdf
-   ```
+See [issue #9](https://github.com/omonien/DX.Pdfium4D/issues/9) for the
+full rationale and the long-term plan.
 
 ---
 
@@ -212,15 +241,19 @@ The wrapper provides three main abstraction layers:
 
 1. **`DX.Pdf.API`** - Low-level PDFium C-API bindings
 2. **`DX.Pdf.Document`** - High-level object-oriented wrapper
-3. **`DX.Pdf.Viewer.FMX`** - Visual FMX component
+3. **`DX.Pdf.Viewer.Core`** - Shared viewer logic (platform-independent)
+4. **`DX.Pdf.Viewer.FMX`** - FMX visual component
+5. **`DX.Pdf.Viewer.VCL`** - VCL visual component
+6. **`DX.Pdf.Renderer.FMX`** - FMX-specific rendering
+7. **`DX.Pdf.Renderer.VCL`** - VCL-specific rendering
 
 ---
 
 ## Examples
 
-### DX PDF Viewer Application
+### DX PDF Viewer Demo Applications
 
-The included **DX PDF Viewer** application demonstrates the wrapper's capabilities.
+The included **DX PDF Viewer** applications (FMX and VCL) demonstrate the wrapper's capabilities.
 
 #### Features
 
@@ -265,29 +298,30 @@ The status bar displays:
 ## Project Structure
 
 ```
-DX-Pdfium4D/
-├── src/                      # Source code
-│   ├── DX.Pdf.API.pas       # Low-level PDFium C-API bindings
-│   ├── DX.Pdf.Document.pas  # High-level document/page classes
-│   ├── DX.Pdf.Viewer.FMX.pas # FMX visual component
-│   ├── PdfViewer/           # Main application
-│   │   ├── DX.PdfViewer.dpr     # Main program file
-│   │   ├── DX.PdfViewer.dproj   # Delphi project file
-│   │   ├── Main.Form.pas    # Main application form
-│   │   └── Main.Form.fmx    # Form layout
-│   └── tests/               # Unit tests
-│       ├── DxPdfium4dTests.dpr    # Test project
-│       ├── DxPdfium4dTests.dproj  # Test project file
-│       └── DX.Pdf.Document.Tests.pas
-├── assets/                   # Icons and logos
-│   ├── Icon.svg             # Application icon (source)
-│   └── Logo.svg             # DX Pdfium4D logo
-├── samples/                  # Sample PDF files for testing
-│   ├── Simple PDF 2.0 file.pdf  # Basic PDF 2.0 example
-│   └── pdf20-utf8-test.pdf      # Complex PDF with UTF-8, bookmarks, layers
-└── lib/                      # Third-party libraries
-    ├── pdfium-bin/          # PDFium binaries
-    └── DUnitX/              # Unit testing framework
+DX.Pdfium4D/
+├── src/                          # Source code
+│   ├── DX.Pdf.API.pas           # Low-level PDFium C-API bindings
+│   ├── DX.Pdf.Document.pas      # High-level document/page classes
+│   ├── DX.Pdf.Viewer.Core.pas   # Shared viewer logic
+│   ├── DX.Pdf.Viewer.FMX.pas    # FMX visual component
+│   ├── DX.Pdf.Viewer.VCL.pas    # VCL visual component
+│   ├── DX.Pdf.Renderer.FMX.pas  # FMX rendering
+│   ├── DX.Pdf.Renderer.VCL.pas  # VCL rendering
+│   ├── PdfViewer/               # FMX demo application
+│   ├── PdfViewerVCL/            # VCL demo application
+│   └── tests/                   # DUnitX unit tests
+├── build/                        # Build scripts and output
+│   ├── DelphiBuildDPROJ.ps1     # Universal Delphi build script
+│   ├── build-tests.ps1          # Build & run unit tests
+│   ├── build-release.ps1        # Build release packages
+│   ├── copy-pdfium-dll.ps1      # Download & copy PDFium DLL
+│   └── <Platform>/<Config>/     # Build output (e.g., Win64/Debug/)
+├── assets/                       # Icons and logos
+├── samples/                      # Sample PDF files for testing
+└── lib/                          # Third-party libraries (Git submodules)
+    ├── pdfium-bin/              # PDFium binary config & cache
+    ├── pdfium-binaries/         # PDFium build scripts (submodule)
+    └── DUnitX/                  # Unit testing framework (submodule)
 ```
 
 
@@ -303,16 +337,22 @@ DX-Pdfium4D/
 - Minimal abstraction
 
 **2. High-Level Classes (`DX.Pdf.Document.pas`)**
-- Object-oriented wrapper with automatic resource management
-- Reference counting for documents and pages
+- Object-oriented wrapper with automatic PDFium resource cleanup
 - Metadata extraction (title, author, PDF/A compliance, etc.)
 - Bitmap rendering with configurable DPI
 
-**3. Visual Component (`DX.Pdf.Viewer.FMX.pas`)**
-- FMX component for displaying PDFs
+**3. Viewer Core (`DX.Pdf.Viewer.Core.pas`)**
+- Shared viewer logic for FMX and VCL
+- Page navigation and state management
+- Platform-independent functionality
+
+**4. Visual Components**
+- **FMX Component (`DX.Pdf.Viewer.FMX.pas`)** - Cross-platform PDF viewer
+- **VCL Component (`DX.Pdf.Viewer.VCL.pas`)** - Windows-native PDF viewer
 - Automatic page navigation
 - Drag & Drop support
 - Background rendering for smooth UI
+- Proper aspect ratio preservation
 
 ### Threading Model
 
@@ -369,10 +409,11 @@ DX Pdfium4D includes comprehensive unit tests for the PDFium wrapper classes.
 
 ### Running Tests
 
-**Option 1: Batch Script**
-```bash
-cd src\tests
-build-and-run-tests.bat
+**Option 1: PowerShell (recommended)**
+```powershell
+cd build
+.\build-tests.ps1 -Run                     # Win64 Debug (default)
+.\build-tests.ps1 -Platform Win32 -Run     # Win32 Debug
 ```
 
 **Option 2: Delphi IDE**
@@ -382,12 +423,15 @@ build-and-run-tests.bat
 
 ### Test Coverage
 
-- ✅ PDF document loading
+- ✅ Library initialization
+- ✅ PDF document loading (file and stream)
 - ✅ Page count and dimensions
+- ✅ Page indexed access and caching
 - ✅ Metadata extraction
 - ✅ PDF/A detection
-- ✅ Bitmap rendering
-- ✅ Error handling
+- ✅ Error handling (non-existent files, out-of-range)
+- ✅ Stream adapter callbacks
+- ✅ PDF Association Cheat Sheets (download & load integration test)
 
 ---
 
@@ -414,7 +458,7 @@ Contributions are welcome! We appreciate your help in making DX Pdfium4D better.
 
 If you find a bug or have a feature request:
 
-1. Check if the issue already exists in [Issues](https://github.com/omonien/DX-Pdfium4D/issues)
+1. Check if the issue already exists in [Issues](https://github.com/omonien/DX.Pdfium4D/issues)
 2. If not, create a new issue with:
    - Clear description of the problem/feature
    - Steps to reproduce (for bugs)
@@ -424,9 +468,9 @@ If you find a bug or have a feature request:
 
 ### Development Setup
 
-1. Clone the repository
-2. Open `src/PdfViewer/DX.PdfViewer.dproj` in Delphi
-3. Build and run tests: `src/tests/build-and-run-tests.bat`
+1. Clone the repository with submodules: `git clone --recurse-submodules ...`
+2. Download PDFium: `cd build && .\copy-pdfium-dll.ps1`
+3. Build and run tests: `.\build-tests.ps1 -Run`
 
 ---
 

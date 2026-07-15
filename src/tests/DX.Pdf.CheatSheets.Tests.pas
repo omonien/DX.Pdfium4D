@@ -8,8 +8,7 @@ uses
   System.Classes,
   System.Net.HttpClient,
   System.Net.URLClient,
-  DX.Pdf.Document,
-  DX.Pdf.Viewer.FMX;
+  DX.Pdf.Document;
 
 type
   [TestFixture]

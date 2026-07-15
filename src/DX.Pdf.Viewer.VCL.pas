@@ -57,7 +57,7 @@ type
     function GetOnPageChanged: TNotifyEvent;
     procedure SetOnPageChanged(const AValue: TNotifyEvent);
     procedure RenderPageInBackground;
-    procedure OnRenderComplete(ABitmap: Vcl.Graphics.TBitmap);
+    procedure OnRenderComplete(ABitmap: Vcl.Graphics.TBitmap; AImageWidth, AImageHeight, AControlWidth, AControlHeight: Integer);
     procedure CreateImage;
     procedure CreateLoadingIndicator;
     procedure DoShowLoadingIndicatorInternal(AShow: Boolean);
@@ -175,7 +175,8 @@ type
 implementation
 
 uses
-  System.Math;
+  System.Math,
+  Vcl.Dialogs;
 
 type
   /// <summary>
@@ -250,7 +251,7 @@ begin
 
   // Enable keyboard and mouse input
   TabStop := True;
-  Color := clWhite;
+  Color := $00F0F0F0; // Light gray background
   ControlStyle := ControlStyle + [csOpaque];
 
   CreateImage;
@@ -321,10 +322,11 @@ begin
   begin
     FImage := TImage.Create(Self);
     FImage.Parent := Self;
-    FImage.Align := alClient;
-    FImage.Center := True;
+    FImage.Align := alNone; // Manual positioning
+    FImage.Center := False;
     FImage.Proportional := False;
     FImage.Stretch := False;
+    FImage.AutoSize := True; // Image sizes itself to bitmap
   end;
 end;
 
@@ -414,12 +416,11 @@ end;
 
 procedure TPdfViewer.Paint;
 begin
+  // Always paint background to avoid artifacts
+  Canvas.Brush.Color := Color;
+  Canvas.FillRect(ClientRect);
+
   inherited;
-  if not IsDocumentLoaded then
-  begin
-    Canvas.Brush.Color := Color;
-    Canvas.FillRect(ClientRect);
-  end;
 end;
 
 procedure TPdfViewer.WMEraseBkgnd(var Message: TWMEraseBkgnd);
@@ -489,7 +490,12 @@ begin
   begin
     FLoadingPanel.Visible := AShow;
     if AShow then
+    begin
       FLoadingPanel.BringToFront;
+      // Hide image while loading to avoid artifacts
+      if FImage <> nil then
+        FImage.Visible := False;
+    end;
   end;
 end;
 
@@ -501,30 +507,34 @@ var
   LRenderWidth: Integer;
   LRenderHeight: Integer;
   LBackgroundColor: TAlphaColor;
+  LAspectRatio: Double;
+  LControlWidth: Integer;
+  LControlHeight: Integer;
 begin
   LCoreVCL := TPdfViewerCoreVCL(FCore);
 
-  // Check if already rendering
-  if LCoreVCL.GetIsRendering then
-    Exit;
-
-  // Check if document is loaded
-  if not IsDocumentLoaded then
-    Exit;
+  // Note: IsRendering check is already done in TPdfViewerCore.RenderCurrentPage
+  // Note: Document loaded check is already done in TPdfViewerCore.RenderCurrentPage
 
   LPageIndex := FCore.CurrentPageIndex;
   if (LPageIndex < 0) or (LPageIndex >= FCore.PageCount) then
+  begin
+    LCoreVCL.SetIsRendering(False);
+    DoShowLoadingIndicatorInternal(False);
     Exit;
+  end;
 
-  // Show loading indicator
-  DoShowLoadingIndicatorInternal(FCore.ShowLoadingIndicator);
+  // Get control size
+  LControlWidth := Width;
+  LControlHeight := Height;
 
-  // Mark as rendering
-  LCoreVCL.SetIsRendering(True);
+  if (LControlWidth <= 0) or (LControlHeight <= 0) then
+  begin
+    LCoreVCL.SetIsRendering(False);
+    DoShowLoadingIndicatorInternal(False);
+    Exit;
+  end;
 
-  // Calculate render size (use control size)
-  LRenderWidth := Max(1, Width);
-  LRenderHeight := Max(1, Height);
   LBackgroundColor := FCore.BackgroundColor;
 
   // Load page in main thread (PDFium requires this)
@@ -538,46 +548,83 @@ begin
     Exit;
   end;
 
+  // Calculate aspect ratio of PDF page
+  LAspectRatio := LCurrentPage.Width / LCurrentPage.Height;
+
+  // Calculate render size to fit control while maintaining aspect ratio
+  if LControlWidth / LControlHeight > LAspectRatio then
+  begin
+    // Height is limiting factor
+    LRenderHeight := LControlHeight;
+    LRenderWidth := Round(LRenderHeight * LAspectRatio);
+  end
+  else
+  begin
+    // Width is limiting factor
+    LRenderWidth := LControlWidth;
+    LRenderHeight := Round(LRenderWidth / LAspectRatio);
+  end;
+
   // Render in background thread
   FRenderTask := TTask.Run(
     procedure
     var
       LTempBitmap: Vcl.Graphics.TBitmap;
+      LErrorMsg: string;
     begin
-      LTempBitmap := Vcl.Graphics.TBitmap.Create;
+      LTempBitmap := nil;
+      LErrorMsg := '';
       try
+        // Create bitmap at calculated size (proportional to page)
+        LTempBitmap := Vcl.Graphics.TBitmap.Create;
         LTempBitmap.PixelFormat := pf32bit;
         LTempBitmap.SetSize(LRenderWidth, LRenderHeight);
 
-        // Render at exact size (this is the slow part)
+        // Render PDF page to bitmap (this is the slow part)
         LCurrentPage.RenderToBitmap(LTempBitmap, LBackgroundColor);
 
         // Switch back to main thread to update UI
-        TThread.Queue(nil,
+        TThread.Synchronize(nil,
           procedure
           begin
-            OnRenderComplete(LTempBitmap);
+            OnRenderComplete(LTempBitmap, LRenderWidth, LRenderHeight, LControlWidth, LControlHeight);
           end);
       except
-        LTempBitmap.Free;
-        TThread.Queue(nil,
-          procedure
-          begin
-            LCoreVCL.SetIsRendering(False);
-            DoShowLoadingIndicatorInternal(False);
-          end);
+        on E: Exception do
+        begin
+          LErrorMsg := E.Message;
+          if LTempBitmap <> nil then
+            LTempBitmap.Free;
+          TThread.Synchronize(nil,
+            procedure
+            begin
+              LCoreVCL.SetIsRendering(False);
+              DoShowLoadingIndicatorInternal(False);
+              ShowMessage('Render error: ' + LErrorMsg);
+            end);
+        end;
       end;
     end);
 end;
 
-procedure TPdfViewer.OnRenderComplete(ABitmap: Vcl.Graphics.TBitmap);
+procedure TPdfViewer.OnRenderComplete(ABitmap: Vcl.Graphics.TBitmap; AImageWidth, AImageHeight, AControlWidth, AControlHeight: Integer);
 begin
   try
     // Assign bitmap to image (fast operation in main thread)
     FImage.Picture.Bitmap.Assign(ABitmap);
 
+    // Center the image in the control
+    // AutoSize will make the TImage the same size as the bitmap
+    FImage.Left := (AControlWidth - AImageWidth) div 2;
+    FImage.Top := (AControlHeight - AImageHeight) div 2;
+
+    // Show image (was hidden in DoShowLoadingIndicatorInternal)
+    FImage.Visible := True;
+
     // Hide loading indicator and show rendered page
     DoShowLoadingIndicatorInternal(False);
+
+    // Repaint to clear any artifacts
     Invalidate;
   finally
     ABitmap.Free;
