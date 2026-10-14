@@ -215,6 +215,23 @@ procedure FPDFBitmap_FillRect(ABitmap: FPDF_BITMAP; ALeft: Integer; ATop: Intege
 // Rendering functions
 procedure FPDF_RenderPageBitmap(ABitmap: FPDF_BITMAP; APage: FPDF_PAGE; AStartX: Integer; AStartY: Integer; ASizeX: Integer; ASizeY: Integer; ARotate: Integer; AFlags: Integer); cdecl; external PDFIUM_DLL;
 
+// Coordinate conversion (fpdfview.h).
+// FPDF_CALLCONV is empty for consumers (stdcall only when PDFium itself is
+// built with FPDFSDK_EXPORTS), so these follow the unit's cdecl binding.
+// Signatures verified against public/fpdfview.h:
+//   FPDF_BOOL FPDF_DeviceToPage(FPDF_PAGE page, int start_x, int start_y,
+//       int size_x, int size_y, int rotate, int device_x, int device_y,
+//       double* page_x, double* page_y);
+//   FPDF_BOOL FPDF_PageToDevice(FPDF_PAGE page, int start_x, int start_y,
+//       int size_x, int size_y, int rotate, double page_x, double page_y,
+//       int* device_x, int* device_y);
+// start_*/size_* must match the values passed to FPDF_RenderPageBitmap.
+// Page space is bottom-up (origin at the left-bottom of the page).
+function FPDF_DeviceToPage(APage: FPDF_PAGE; AStartX, AStartY, ASizeX, ASizeY, ARotate: Integer;
+  ADeviceX, ADeviceY: Integer; out APageX, APageY: Double): FPDF_BOOL; cdecl; external PDFIUM_DLL;
+function FPDF_PageToDevice(APage: FPDF_PAGE; AStartX, AStartY, ASizeX, ASizeY, ARotate: Integer;
+  APageX, APageY: Double; out ADeviceX, ADeviceY: Integer): FPDF_BOOL; cdecl; external PDFIUM_DLL;
+
 {$IFDEF MSWINDOWS}
 procedure FPDF_RenderPage(ADC: HDC; APage: FPDF_PAGE; AStartX: Integer; AStartY: Integer; ASizeX: Integer; ASizeY: Integer; ARotate: Integer; AFlags: Integer); cdecl; external PDFIUM_DLL;
 {$ENDIF}

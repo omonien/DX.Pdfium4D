@@ -7,7 +7,7 @@
   Description:
     FMX PDF Viewer Component.
     Provides a visual component for displaying PDF documents in FMX applications.
-    Supports navigation, zooming, and drag-and-drop.
+    Supports navigation, zooming, drag-and-drop, and text selection.
 
   Author: Olaf Monien
   Copyright (c) 2025 Olaf Monien
@@ -49,6 +49,9 @@ type
     FLoadingArc: TArc;
     FRenderTask: ITask;
     FHLRect: TRectF;
+    FPageViewMap: TPdfPageViewMap;
+    FSelectionOverlay: TControl;
+    FSelecting: Boolean;
     procedure FOnChangeScroll(Sender: TObject);
     function GetCurrentPageIndex: Integer;
     procedure SetCurrentPageIndex(const AValue: Integer);
@@ -60,18 +63,30 @@ type
     function GetDocument: TPdfDocument;
     function GetOnPageChanged: TNotifyEvent;
     procedure SetOnPageChanged(const AValue: TNotifyEvent);
+    function GetSelectionEnabled: Boolean;
+    procedure SetSelectionEnabled(const AValue: Boolean);
+    function GetOnSelectionChanged: TNotifyEvent;
+    procedure SetOnSelectionChanged(const AValue: TNotifyEvent);
     procedure RenderPageInBackground;
     procedure OnRenderComplete(ABitmap: FMX.Graphics.TBitmap);
     procedure CreateImage;
     procedure CreateScroll;
     procedure CreateLoadingIndicator;
+    procedure CreateSelectionOverlay;
     procedure DoShowLoadingIndicatorInternal(AShow: Boolean);
     function GetCurrentPage: TPdfPage;
+    procedure UpdatePageViewMap(APixelWidth, APixelHeight: Integer; ABitmapScale: Single);
+    function CharIndexAtLocalPoint(X, Y: Single): Integer;
+    function IsPointOnPage(X, Y: Single): Boolean;
+    procedure InvalidateSelection;
   protected
     procedure DocChanged;
     procedure Resize; override;
     procedure Paint; override;
     procedure KeyDown(var Key: Word; var KeyChar: WideChar; Shift: TShiftState); override;
+    procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Single); override;
+    procedure MouseMove(Shift: TShiftState; X, Y: Single); override;
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Single); override;
     procedure MouseWheel(Shift: TShiftState; WheelDelta: Integer; var Handled: Boolean); override;
   public
     constructor Create(AOwner: TComponent); override;
@@ -135,6 +150,36 @@ type
     ///  Get current page
     /// </summary>
     property CurrentPage: TPdfPage read GetCurrentPage;
+
+    /// <summary>
+    /// Clears the text selection on the current page.
+    /// </summary>
+    procedure ClearSelection;
+
+    /// <summary>
+    /// Selects every character on the current page.
+    /// </summary>
+    procedure SelectAll;
+
+    /// <summary>
+    /// Selects the word that contains ACharIndex.
+    /// </summary>
+    procedure SelectWordAt(ACharIndex: Integer);
+
+    /// <summary>
+    /// True when a character range is selected.
+    /// </summary>
+    function HasSelection: Boolean;
+
+    /// <summary>
+    /// Text covered by the current selection.
+    /// </summary>
+    function GetSelectedText: string;
+
+    /// <summary>
+    /// Copies the current selection to the clipboard.
+    /// </summary>
+    procedure CopySelection;
   published
     /// <summary>
     /// Current page index (0-based)
@@ -160,6 +205,16 @@ type
     /// Event fired when the current page changes
     /// </summary>
     property OnPageChanged: TNotifyEvent read GetOnPageChanged write SetOnPageChanged;
+
+    /// <summary>
+    /// Enables text selection and copy. Defaults to True.
+    /// </summary>
+    property SelectionEnabled: Boolean read GetSelectionEnabled write SetSelectionEnabled default True;
+
+    /// <summary>
+    /// Fired when the selected character range changes.
+    /// </summary>
+    property OnSelectionChanged: TNotifyEvent read GetOnSelectionChanged write SetOnSelectionChanged;
 
     procedure HighlightRect(ARect: TRectF);
     procedure Rerender;
@@ -213,7 +268,18 @@ implementation
 
 uses
   System.Math,
+  System.Rtti,
   FMX.Platform;
+
+type
+  TPdfSelectionOverlay = class(TControl)
+  private
+    FViewer: TPdfViewer;
+  protected
+    procedure Paint; override;
+  public
+    constructor Create(AViewer: TPdfViewer); reintroduce;
+  end;
 
 type
   /// <summary>
@@ -225,6 +291,7 @@ type
   protected
     procedure DoRenderCurrentPage; override;
     procedure DoShowLoadingIndicator(AShow: Boolean); override;
+    procedure DoSelectionChanged; override;
   public
     constructor Create(AViewer: TPdfViewer); reintroduce;
 
@@ -303,6 +370,46 @@ begin
   RenderCurrentPage;
 end;
 
+procedure TPdfViewerCoreFMX.DoSelectionChanged;
+begin
+  inherited;
+  if FViewer <> nil then
+    FViewer.InvalidateSelection;
+end;
+
+{ TPdfSelectionOverlay }
+
+constructor TPdfSelectionOverlay.Create(AViewer: TPdfViewer);
+begin
+  inherited Create(AViewer);
+  FViewer := AViewer;
+  HitTest := False;
+  CanFocus := False;
+end;
+
+procedure TPdfSelectionOverlay.Paint;
+var
+  LRects: TArray<TRectF>;
+  LRect: TRectF;
+  I: Integer;
+begin
+  if (FViewer = nil) or not FViewer.IsDocumentLoaded then
+    Exit;
+  if TPdfViewerCoreFMX(FViewer.FCore).GetIsRendering then
+    Exit;
+
+  LRects := FViewer.FCore.GetSelectionScreenRects(FViewer.FPageViewMap);
+  Canvas.Fill.Kind := TBrushKind.Solid;
+  Canvas.Fill.Color := TAlphaColors.Dodgerblue;
+  for I := 0 to High(LRects) do
+  begin
+    LRect := LRects[I];
+    LRect.Offset(-Position.X, -Position.Y);
+    if (LRect.Width > 0) and (LRect.Height > 0) then
+      Canvas.FillRect(LRect, 0, 0, [], 0.35);
+  end;
+end;
+
 { TPdfViewer }
 
 constructor TPdfViewer.Create(AOwner: TComponent);
@@ -317,6 +424,9 @@ begin
   CreateImage;
   CreateScroll;
   CreateLoadingIndicator;
+  CreateSelectionOverlay;
+  FSelecting := False;
+  FPageViewMap := Default(TPdfPageViewMap);
 end;
 
 destructor TPdfViewer.Destroy;
@@ -388,6 +498,118 @@ begin
   FCore.OnPageChanged := AValue;
 end;
 
+function TPdfViewer.GetSelectionEnabled: Boolean;
+begin
+  Result := FCore.SelectionEnabled;
+end;
+
+procedure TPdfViewer.SetSelectionEnabled(const AValue: Boolean);
+begin
+  FCore.SelectionEnabled := AValue;
+  if not AValue then
+    FSelecting := False;
+end;
+
+function TPdfViewer.GetOnSelectionChanged: TNotifyEvent;
+begin
+  Result := FCore.OnSelectionChanged;
+end;
+
+procedure TPdfViewer.SetOnSelectionChanged(const AValue: TNotifyEvent);
+begin
+  FCore.OnSelectionChanged := AValue;
+end;
+
+procedure TPdfViewer.ClearSelection;
+begin
+  FSelecting := False;
+  FCore.ClearSelection;
+end;
+
+procedure TPdfViewer.SelectAll;
+begin
+  FCore.SelectAll;
+end;
+
+procedure TPdfViewer.SelectWordAt(ACharIndex: Integer);
+begin
+  FCore.SelectWordAt(ACharIndex);
+end;
+
+function TPdfViewer.HasSelection: Boolean;
+begin
+  Result := FCore.HasSelection;
+end;
+
+function TPdfViewer.GetSelectedText: string;
+begin
+  Result := FCore.GetSelectedText;
+end;
+
+procedure TPdfViewer.CopySelection;
+var
+  LService: IFMXClipboardService;
+  LText: string;
+begin
+  LText := GetSelectedText;
+  if LText = '' then
+    Exit;
+  if TPlatformServices.Current.SupportsPlatformService(IFMXClipboardService, LService) then
+    LService.SetClipboard(TValue.From<string>(LText));
+end;
+
+function TPdfViewer.CharIndexAtLocalPoint(X, Y: Single): Integer;
+begin
+  Result := FCore.CharIndexAtScreenPoint(FPageViewMap, X, Y);
+end;
+
+function TPdfViewer.IsPointOnPage(X, Y: Single): Boolean;
+var
+  LRight, LBottom: Double;
+begin
+  Result := (FPageViewMap.SizeX > 0) and (FPageViewMap.SizeY > 0) and
+    (FPageViewMap.ScreenScaleX <> 0) and (FPageViewMap.ScreenScaleY <> 0);
+  if not Result then
+    Exit;
+  LRight := FPageViewMap.ScreenLeft + (FPageViewMap.SizeX * FPageViewMap.ScreenScaleX);
+  LBottom := FPageViewMap.ScreenTop + (FPageViewMap.SizeY * FPageViewMap.ScreenScaleY);
+  Result := (X >= FPageViewMap.ScreenLeft) and (Y >= FPageViewMap.ScreenTop) and
+    (X <= LRight) and (Y <= LBottom);
+end;
+
+procedure TPdfViewer.InvalidateSelection;
+begin
+  if FSelectionOverlay <> nil then
+    FSelectionOverlay.Repaint;
+end;
+
+procedure TPdfViewer.UpdatePageViewMap(APixelWidth, APixelHeight: Integer; ABitmapScale: Single);
+var
+  LScale, LLogicalW, LLogicalH: Single;
+begin
+  FPageViewMap := Default(TPdfPageViewMap);
+  if (FImage = nil) or (APixelWidth <= 0) or (APixelHeight <= 0) then
+    Exit;
+
+  LScale := ABitmapScale;
+  if LScale <= 0 then
+    LScale := 1;
+
+  // WrapMode Center draws the bitmap at its logical size (pixels / scale).
+  LLogicalW := APixelWidth / LScale;
+  LLogicalH := APixelHeight / LScale;
+
+  FPageViewMap.StartX := 0;
+  FPageViewMap.StartY := 0;
+  FPageViewMap.SizeX := APixelWidth;
+  FPageViewMap.SizeY := APixelHeight;
+  FPageViewMap.Rotate := FPDF_ROTATE_0;
+  FPageViewMap.ScreenScaleX := 1 / LScale;
+  FPageViewMap.ScreenScaleY := 1 / LScale;
+  FPageViewMap.ScreenLeft := FImage.Position.X + (FImage.Width - LLogicalW) / 2;
+  FPageViewMap.ScreenTop := FImage.Position.Y + (FImage.Height - LLogicalH) / 2;
+end;
+
 procedure TPdfViewer.CreateImage;
 begin
   if FImage = nil then
@@ -455,6 +677,20 @@ begin
   FLoadingLabel.HitTest := False;
 end;
 
+procedure TPdfViewer.CreateSelectionOverlay;
+var
+  LOverlay: TPdfSelectionOverlay;
+begin
+  if FSelectionOverlay <> nil then
+    Exit;
+  LOverlay := TPdfSelectionOverlay.Create(Self);
+  LOverlay.Parent := Self;
+  LOverlay.Align := TAlignLayout.Client;
+  LOverlay.HitTest := False;
+  LOverlay.BringToFront;
+  FSelectionOverlay := LOverlay;
+end;
+
 procedure TPdfViewer.LoadFromFile(const AFileName: string; const APassword: string);
 begin
   FCore.LoadFromFile(AFileName, APassword);
@@ -469,10 +705,13 @@ end;
 
 procedure TPdfViewer.Close;
 begin
+  FSelecting := False;
   FCore.Close;
+  FPageViewMap := Default(TPdfPageViewMap);
   if FImage <> nil then
     FImage.Bitmap.Clear(FCore.BackgroundColor);
   DocChanged;
+  InvalidateSelection;
   Repaint;
 end;
 
@@ -600,6 +839,7 @@ begin
     end;
     // Swap bitmaps (fast operation in main thread)
     FImage.Bitmap.Assign(ABitmap);
+    UpdatePageViewMap(ABitmap.Width, ABitmap.Height, ABitmap.BitmapScale);
 
     // Hide loading indicator and show rendered page
     DoShowLoadingIndicatorInternal(False);
@@ -607,6 +847,7 @@ begin
   finally
     ABitmap.Free;
     TPdfViewerCoreFMX(FCore).SetIsRendering(False);
+    InvalidateSelection;
   end;
 end;
 
@@ -653,8 +894,25 @@ begin
 end;
 
 procedure TPdfViewer.KeyDown(var Key: Word; var KeyChar: WideChar; Shift: TShiftState);
+var
+  LCommand: Boolean;
 begin
   inherited;
+
+  // Ctrl on Windows and Linux, Cmd (reported as ssCommand, and often ssCtrl) on macOS.
+  LCommand := (ssCtrl in Shift) or (ssCommand in Shift);
+  if LCommand and (Key = vkC) and HasSelection then
+  begin
+    CopySelection;
+    Key := 0;
+    Exit;
+  end;
+  if LCommand and (Key = vkA) and SelectionEnabled then
+  begin
+    SelectAll;
+    Key := 0;
+    Exit;
+  end;
 
   case Key of
     vkUp, vkLeft:
@@ -687,6 +945,80 @@ begin
       NextPage;
       Key := 0; // Mark as handled
     end;
+  end;
+end;
+
+procedure TPdfViewer.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+var
+  LIndex: Integer;
+begin
+  inherited;
+
+  if (Button <> TMouseButton.mbLeft) or not SelectionEnabled or not IsDocumentLoaded then
+    Exit;
+  // PDFium is not thread-safe. Skip hit testing while a page is rendering.
+  if TPdfViewerCoreFMX(FCore).GetIsRendering then
+    Exit;
+
+  if CanFocus and (Root <> nil) then
+    SetFocus;
+
+  // Clicks outside the rendered page (letterbox, scrollbar) keep the
+  // current selection. The page bitmap is what the user is selecting in.
+  if not IsPointOnPage(X, Y) then
+    Exit;
+
+  LIndex := CharIndexAtLocalPoint(X, Y);
+  if ssDouble in Shift then
+  begin
+    FSelecting := False;
+    ReleaseCapture;
+    if LIndex >= 0 then
+      SelectWordAt(LIndex)
+    else
+      ClearSelection;
+    Exit;
+  end;
+
+  if LIndex < 0 then
+  begin
+    FSelecting := False;
+    ClearSelection;
+    Exit;
+  end;
+
+  FSelecting := True;
+  FCore.SetSelection(LIndex, LIndex);
+  Capture;
+end;
+
+procedure TPdfViewer.MouseMove(Shift: TShiftState; X, Y: Single);
+var
+  LIndex: Integer;
+begin
+  inherited;
+
+  if not FSelecting or not (ssLeft in Shift) or not SelectionEnabled then
+  begin
+    if not SelectionEnabled then
+      FSelecting := False;
+    Exit;
+  end;
+  if TPdfViewerCoreFMX(FCore).GetIsRendering then
+    Exit;
+
+  LIndex := CharIndexAtLocalPoint(X, Y);
+  if LIndex >= 0 then
+    FCore.SetSelection(FCore.SelectionAnchor, LIndex);
+end;
+
+procedure TPdfViewer.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+begin
+  inherited;
+  if Button = TMouseButton.mbLeft then
+  begin
+    FSelecting := False;
+    ReleaseCapture;
   end;
 end;
 
