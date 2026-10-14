@@ -403,7 +403,7 @@ begin
     FImage.HitTest := False;
     FImage.Margins.Rect := RectF(10, 0, 10, 0);
     // Use Center mode to display bitmap at exact size without scaling
-    FImage.WrapMode := TImageWrapMode.Fit;
+    FImage.WrapMode := TImageWrapMode.Center;
   end;
 end;
 
