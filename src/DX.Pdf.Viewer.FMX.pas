@@ -30,6 +30,7 @@ uses
   FMX.StdCtrls,
   FMX.Forms,
   FMX.Layouts,
+  FMX.Ani,
   DX.Pdf.API,
   DX.Pdf.Document,
   DX.Pdf.Renderer.FMX,  // FMX-specific renderer
@@ -47,6 +48,7 @@ type
     FLoadingPanel: TPanel;
     FLoadingLabel: TLabel;
     FLoadingArc: TArc;
+    FAniLoading: TFloatAnimation;
     FRenderTask: ITask;
     FHLRect: TRectF;
     procedure FOnChangeScroll(Sender: TObject);
@@ -135,6 +137,9 @@ type
     ///  Get current page
     /// </summary>
     property CurrentPage: TPdfPage read GetCurrentPage;
+    property LoadingPanel: TPanel read FLoadingPanel;
+    property LoadingLabel: TLabel read FLoadingLabel;
+    property LoadingArc: TArc read FLoadingArc;
   published
     /// <summary>
     /// Current page index (0-based)
@@ -396,6 +401,7 @@ begin
     FImage.Parent := Self;
     FImage.Align := TAlignLayout.Client;
     FImage.HitTest := False;
+    FImage.Margins.Rect := RectF(10, 0, 10, 0);
     // Use Center mode to display bitmap at exact size without scaling
     FImage.WrapMode := TImageWrapMode.Center;
   end;
@@ -442,16 +448,21 @@ begin
   FLoadingArc.Fill.Kind := TBrushKind.None;
   FLoadingArc.HitTest := False;
 
+  FAniLoading := TFloatAnimation.Create(FLoadingArc);
+  FLoadingArc.AddObject(FAniLoading);
+  FAniLoading.PropertyName := 'RotationAngle';
+  FAniLoading.StartValue := 0;
+  FAniLoading.StopValue := 359;
+  FAniLoading.Loop := True;
+  FAniLoading.Enabled := True;
+
   // Create loading label
   FLoadingLabel := TLabel.Create(FLoadingPanel);
   FLoadingLabel.Parent := FLoadingPanel;
   FLoadingLabel.Align := TAlignLayout.Client;
   FLoadingLabel.TextSettings.HorzAlign := TTextAlign.Center;
   FLoadingLabel.TextSettings.VertAlign := TTextAlign.Center;
-  FLoadingLabel.TextSettings.Font.Size := 14;
-  FLoadingLabel.StyledSettings := [TStyledSetting.Family, TStyledSetting.Style];
-  FLoadingLabel.TextSettings.FontColor := TAlphaColors.Black;
-  FLoadingLabel.Text := 'Loading...';
+  FLoadingLabel.Text := Translate('Loading...');
   FLoadingLabel.HitTest := False;
 end;
 
@@ -713,7 +724,7 @@ procedure TPdfViewer.DocChanged;
 begin
   if Assigned(FScroll) then
   begin
-    FScroll.Max := PageCount;
+    FScroll.Max := PageCount - 1;
     FScroll.Min := 0;
     FScroll.Value := CurrentPageIndex;
   end;
@@ -727,11 +738,13 @@ begin
     begin
       FLoadingPanel.Visible := True;
       FLoadingPanel.BringToFront;
+      FAniLoading.Start;
       Application.ProcessMessages; // Force UI update
     end
     else
     begin
       FLoadingPanel.Visible := False;
+      FAniLoading.Stop;
     end;
   end;
 end;
