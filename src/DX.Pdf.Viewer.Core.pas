@@ -225,6 +225,8 @@ end;
 
 procedure TPdfViewerCore.SetCurrentPageIndex(const AValue: Integer);
 begin
+  if IsRendering then
+    Exit;
   if not IsDocumentLoaded then
     Exit;
 
@@ -233,6 +235,7 @@ begin
 
   if FCurrentPageIndex <> AValue then
   begin
+    FreeAndNil(FCurrentPage);
     FCurrentPageIndex := AValue;
     RenderCurrentPage;
     if Assigned(FOnPageChanged) then
