@@ -24,6 +24,7 @@ uses
   DUnitX.Loggers.Xml.NUnit,
   {$ENDIF }
   DUnitX.TestFramework,
+  DUnitX.FilterBuilder,
   DX.Pdf.API in '..\DX.Pdf.API.pas',
   DX.Pdf.Document in '..\DX.Pdf.Document.pas',
   DX.Pdf.Viewer.Core in '..\DX.Pdf.Viewer.Core.pas',
@@ -55,6 +56,24 @@ begin
   try
     // Check command line options, will exit if invalid
     TDUnitX.CheckCommandLine;
+
+    // Tests in the category 'Network' need internet access and are opt-in.
+    // They are excluded from the default run and only run when requested
+    // explicitly: categories selected with --include (e.g. --include:Network),
+    // tests selected by name with --run (e.g.
+    // --run:DX.Pdf.CheatSheets.Tests), or the environment variable
+    // DX_PDFIUM4D_NETWORK_TESTS set to 1.
+    if (TDUnitX.Options.Include = '') and (TDUnitX.Options.Run.Count = 0) and
+      (TDUnitX.Options.RunListFile = '') and
+      (GetEnvironmentVariable('DX_PDFIUM4D_NETWORK_TESTS') <> '1') then
+    begin
+      if TDUnitX.Options.Exclude = '' then
+        TDUnitX.Options.Exclude := 'Network'
+      else
+        TDUnitX.Options.Exclude := TDUnitX.Options.Exclude + ',Network';
+      // CheckCommandLine has already built the filter, so rebuild it.
+      TDUnitX.Filter := TDUnitXFilterBuilder.BuildFilter(TDUnitX.Options);
+    end;
 
     // Create the test runner
     LRunner := TDUnitX.CreateRunner;

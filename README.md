@@ -421,6 +421,19 @@ cd build
 2. Press **F9** to run tests
 3. View results in the console
 
+### Network Tests (opt-in)
+
+`TestDownloadAndLoadCheatSheets` downloads the PDF Association cheat sheets from pdfa.org. It is in the DUnitX category `Network` and is **excluded from the default run**. Enable it explicitly:
+
+```powershell
+DxPdfium4dTests.exe --include:Network      # run only the network tests
+DxPdfium4dTests.exe --run:DX.Pdf.CheatSheets.Tests   # select the test by name
+$env:DX_PDFIUM4D_NETWORK_TESTS = '1'       # run all tests including network tests
+DxPdfium4dTests.exe
+```
+
+Each download is retried up to 3 times. Without a network connection the test is skipped (it ends early with a `SKIPPED` message) instead of failing.
+
 ### Test Coverage
 
 - ✅ Library initialization
@@ -431,7 +444,7 @@ cd build
 - ✅ PDF/A detection
 - ✅ Error handling (non-existent files, out-of-range)
 - ✅ Stream adapter callbacks
-- ✅ PDF Association Cheat Sheets (download & load integration test)
+- ✅ PDF Association Cheat Sheets (download & load integration test, opt-in, see above)
 
 ---
 

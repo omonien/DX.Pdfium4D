@@ -1,6 +1,21 @@
-unit DX.Pdf.CheatSheets.Tests;
+﻿unit DX.Pdf.CheatSheets.Tests;
 
 interface
+
+{
+  Network integration test.
+
+  TestDownloadAndLoadCheatSheets downloads the PDF Association cheat sheets
+  from pdfa.org. It is in the DUnitX category 'Network' and is excluded from
+  the default test run (see DxPdfium4dTests.dpr). Enable it explicitly with
+  either:
+    DxPdfium4dTests.exe --include:Network
+    DxPdfium4dTests.exe --run:DX.Pdf.CheatSheets.Tests
+    set DX_PDFIUM4D_NETWORK_TESTS=1
+  Each download is retried up to 3 times. When no cheat sheet can be
+  downloaded at all (no network), the test is skipped (it ends early with
+  Assert.Pass and a SKIPPED message) instead of failing.
+}
 
 uses
   DUnitX.TestFramework,
@@ -13,10 +28,17 @@ uses
 type
   [TestFixture]
   TPdfCheatSheetsTests = class
+  private const
+    /// <summary>
+    /// Number of attempts per download before it counts as failed.
+    /// </summary>
+    CMaxDownloadAttempts = 3;
   private
     FTestDataDir: string;
     FHttpClient: THTTPClient;
-    
+    FLastDownloadWasNetworkError: Boolean;
+
+    function TryDownloadPdf(const AURL: string; const AFileName: string): Boolean;
     function DownloadPdf(const AURL: string; const AFileName: string): Boolean;
     function GetCheatSheetUrls: TArray<string>;
   public
@@ -27,6 +49,7 @@ type
     procedure TearDown;
     
     [Test]
+    [Category('Network')]
     procedure TestDownloadAndLoadCheatSheets;
   end;
 
@@ -85,12 +108,31 @@ end;
 
 function TPdfCheatSheetsTests.DownloadPdf(const AURL: string; const AFileName: string): Boolean;
 var
+  LAttempt: Integer;
+begin
+  // Retry transient failures (timeouts, HTTP errors, dropped connections).
+  Result := False;
+  for LAttempt := 1 to CMaxDownloadAttempts do
+  begin
+    if LAttempt > 1 then
+    begin
+      WriteLn(Format('  -> Retry %d/%d', [LAttempt, CMaxDownloadAttempts]));
+      Sleep(1000 * LAttempt);
+    end;
+    if TryDownloadPdf(AURL, AFileName) then
+      Exit(True);
+  end;
+end;
+
+function TPdfCheatSheetsTests.TryDownloadPdf(const AURL: string; const AFileName: string): Boolean;
+var
   LResponse: IHTTPResponse;
   LFileStream: TFileStream;
   LContentStream: TStream;
   LFilePath: string;
 begin
   Result := False;
+  FLastDownloadWasNetworkError := False;
   LFilePath := TPath.Combine(FTestDataDir, AFileName);
 
   try
@@ -125,6 +167,8 @@ begin
   except
     on E: Exception do
     begin
+      // Exceptions here are connection level errors (DNS, connect, TLS).
+      FLastDownloadWasNetworkError := True;
       WriteLn(Format('  -> Download failed: %s', [E.Message]));
     end;
   end;
@@ -140,10 +184,12 @@ var
   LSuccessCount: Integer;
   LFailCount: Integer;
   LTotalCount: Integer;
+  LNetworkErrorCount: Integer;
 begin
   LUrls := GetCheatSheetUrls;
   LSuccessCount := 0;
   LFailCount := 0;
+  LNetworkErrorCount := 0;
   LTotalCount := Length(LUrls);
   
   WriteLn('');
@@ -161,6 +207,8 @@ begin
     if not DownloadPdf(LURL, LFileName) then
     begin
       Inc(LFailCount);
+      if FLastDownloadWasNetworkError then
+        Inc(LNetworkErrorCount);
       Continue;
     end;
 
@@ -199,6 +247,13 @@ begin
     [LSuccessCount, LTotalCount, LFailCount]));
   WriteLn('========================================');
   WriteLn('');
+
+  // Nothing could be downloaded because of connection errors: no network.
+  // Skip instead of failing, this is not a defect of the library.
+  if (LSuccessCount = 0) and (LNetworkErrorCount = LTotalCount) then
+    // The bundled DUnitX has no runtime Assert.Ignore, so end the test early
+    // with Assert.Pass and a message that marks it as skipped.
+    Assert.Pass('SKIPPED: No network connection, cheat sheet downloads skipped.');
 
   Assert.AreEqual(LTotalCount, LSuccessCount,
     Format('All cheat sheets should load successfully. %d failed.', [LFailCount]));
