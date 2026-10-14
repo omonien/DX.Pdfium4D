@@ -94,36 +94,30 @@ implementation
 
 type
   /// <summary>
-  /// Concrete core used by tests. Render is synchronous and the current
-  /// page is the document-owned Pages[] instance, so Close must not free it.
+  /// Concrete core used by tests. Render is synchronous and, like the FMX and
+  /// VCL viewers, the current page is a separate instance owned by the core
+  /// (created with GetPageByIndex), so page changes and Close may free it.
   /// </summary>
   TSelectionViewer = class(TPdfViewerCore)
   protected
     procedure DoRenderCurrentPage; override;
     procedure DoShowLoadingIndicator(AShow: Boolean); override;
-  public
-    procedure Close; override;
   end;
 
 procedure TSelectionViewer.DoRenderCurrentPage;
 begin
   if (Document <> nil) and Document.IsLoaded and (CurrentPageIndex >= 0) and
     (CurrentPageIndex < Document.PageCount) then
-    CurrentPage := Document.Pages[CurrentPageIndex];
+  begin
+    CurrentPage.Free;
+    CurrentPage := Document.GetPageByIndex(CurrentPageIndex);
+  end;
   IsRendering := False;
 end;
 
 procedure TSelectionViewer.DoShowLoadingIndicator(AShow: Boolean);
 begin
   // No UI in the test core.
-end;
-
-procedure TSelectionViewer.Close;
-begin
-  // Pages[] are owned by the document. Drop the reference first so the
-  // inherited Close does not free that instance.
-  CurrentPage := nil;
-  inherited;
 end;
 
 function OpenTextViewer(const APath: string): TSelectionViewer;
