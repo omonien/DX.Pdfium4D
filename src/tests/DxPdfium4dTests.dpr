@@ -26,6 +26,7 @@ uses
   DUnitX.TestFramework,
   DX.Pdf.API in '..\DX.Pdf.API.pas',
   DX.Pdf.Document in '..\DX.Pdf.Document.pas',
+  DX.Pdf.Viewer.Core in '..\DX.Pdf.Viewer.Core.pas',
   {$IF not Defined(LINUX) or Defined(HAS_FMXLINUX)}
   // FMX is not part of the stock Delphi RTL on Linux. The viewer unit is
   // only pulled in here to keep it compile-checked alongside the core
@@ -36,7 +37,8 @@ uses
   DX.Pdf.Document.Tests in 'DX.Pdf.Document.Tests.pas',
   DX.Pdf.CheatSheets.Tests in 'DX.Pdf.CheatSheets.Tests.pas',
   DX.Pdf.Extended.Tests in 'DX.Pdf.Extended.Tests.pas',
-  DX.Pdf.ABI.Tests in 'DX.Pdf.ABI.Tests.pas';
+  DX.Pdf.ABI.Tests in 'DX.Pdf.ABI.Tests.pas',
+  DX.Pdf.Selection.Tests in 'DX.Pdf.Selection.Tests.pas';
 
 {$IFNDEF TESTINSIGHT}
 var

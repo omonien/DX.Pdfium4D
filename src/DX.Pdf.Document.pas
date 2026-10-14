@@ -140,11 +140,51 @@ type
 
     function GetCharBox(const AIndex: Integer): TRectF;
     function GetCharIndexAtPos(const AX, AY, AXTolerance, AYTolerance: Double): Integer;
+
+    /// <summary>
+    /// Character index at a PDF-space point (origin bottom-left, Y up).
+    /// Uses FPDFText_GetCharIndexAtPos with the given tolerance in page
+    /// units. When that misses, returns the character whose box center is
+    /// nearest, limited to AMaxDistance page units. A negative
+    /// AMaxDistance removes the limit. Returns -1 when nothing qualifies.
+    /// </summary>
+    function CharIndexNearPos(const AX, AY, AXTolerance, AYTolerance: Double;
+      const AMaxDistance: Double = 36): Integer;
+
+    /// <summary>
+    /// Unicode code point of the character at AIndex, or 0 when the index
+    /// is outside the page.
+    /// </summary>
+    function GetUnicode(const AIndex: Integer): Cardinal;
+
     function GetCharRect(const AIndex: Integer; var ARect: TRectF): Boolean;
+
+    /// <summary>
+    /// Rectangle produced by FPDFText_CountRects, in PDF page coordinates
+    /// (origin bottom-left, Y up). ARectIndex is a rectangle index, not a
+    /// character index. CountRects must be called first.
+    /// </summary>
+    function GetRect(const ARectIndex: Integer; out ARect: TRectF): Boolean;
+
     function FindStart(const AFindwhat: string; const AFlags: FPDF_DWORD; const AStartIndex: Integer): IPageSearch;
 
     function CountRects(const AStartIndex, ACount: Integer): Integer;
     function GetBoundedText(const ARect: TRectF; const ABuffer: string): Integer;
+
+    /// <summary>
+    /// Converts a device pixel to PDF page coordinates.
+    /// AStartX, AStartY, ASizeX, ASizeY and ARotate must match the values
+    /// used to render the page. Page Y grows upward.
+    /// </summary>
+    function DeviceToPage(AStartX, AStartY, ASizeX, ASizeY, ARotate, ADeviceX, ADeviceY: Integer;
+      out APageX, APageY: Double): Boolean;
+
+    /// <summary>
+    /// Converts a PDF page point to device pixels.
+    /// Parameters match DeviceToPage. Page Y grows upward.
+    /// </summary>
+    function PageToDevice(AStartX, AStartY, ASizeX, ASizeY, ARotate: Integer;
+      APageX, APageY: Double; out ADeviceX, ADeviceY: Integer): Boolean;
   end;
 
   /// <summary>
@@ -726,12 +766,101 @@ begin
   Result := FPDFText_GetCharIndexAtPos(FHandleText, AX, AY, AXTolerance, AYTolerance);
 end;
 
+function TPdfPage.CharIndexNearPos(const AX, AY, AXTolerance, AYTolerance: Double;
+  const AMaxDistance: Double): Integer;
+var
+  I, LCount: Integer;
+  LLeft, LRight, LBottom, LTop: Double;
+  LBestDist, LDist, LCenterX, LCenterY, LMaxDist2: Double;
+begin
+  Result := GetCharIndexAtPos(AX, AY, AXTolerance, AYTolerance);
+  if Result >= 0 then
+    Exit;
+
+  Result := -1;
+  LCount := GetCharCount;
+  if LCount <= 0 then
+    Exit;
+
+  if AMaxDistance < 0 then
+    LMaxDist2 := MaxDouble
+  else
+    LMaxDist2 := AMaxDistance * AMaxDistance;
+  LBestDist := LMaxDist2;
+
+  for I := 0 to LCount - 1 do
+  begin
+    // FPDFText_GetCharBox order is left, right, bottom, top (PDF Y up).
+    if not FPDFText_GetCharBox(FHandleText, I, LLeft, LRight, LBottom, LTop) then
+      Continue;
+    LCenterX := (LLeft + LRight) * 0.5;
+    LCenterY := (LBottom + LTop) * 0.5;
+    LDist := Sqr(LCenterX - AX) + Sqr(LCenterY - AY);
+    if LDist <= LBestDist then
+    begin
+      LBestDist := LDist;
+      Result := I;
+    end;
+  end;
+end;
+
+function TPdfPage.GetUnicode(const AIndex: Integer): Cardinal;
+begin
+  if (AIndex < 0) or (AIndex >= GetCharCount) then
+    Result := 0
+  else
+    Result := FPDFText_GetUnicode(FHandleText, AIndex);
+end;
+
 function TPdfPage.GetCharRect(const AIndex: Integer; var ARect: TRectF): Boolean;
 var
   Left, Right, Bottom, Top: Double;
 begin
   Result := FPDFText_GetRect(FHandleText, AIndex, Left, Top, Right, Bottom);
   ARect := ConvertPDFCoordsToCanvas(TRectF.Create(Left, Top, Right, Bottom), Height);
+end;
+
+function TPdfPage.GetRect(const ARectIndex: Integer; out ARect: TRectF): Boolean;
+var
+  LLeft, LTop, LRight, LBottom: Double;
+begin
+  LLeft := 0;
+  LTop := 0;
+  LRight := 0;
+  LBottom := 0;
+  Result := FPDFText_GetRect(FHandleText, ARectIndex, LLeft, LTop, LRight, LBottom);
+  if Result then
+  begin
+    // Keep PDFium's orientation: Top is the larger PDF Y.
+    ARect.Left := LLeft;
+    ARect.Top := LTop;
+    ARect.Right := LRight;
+    ARect.Bottom := LBottom;
+  end
+  else
+    ARect := TRectF.Empty;
+end;
+
+function TPdfPage.DeviceToPage(AStartX, AStartY, ASizeX, ASizeY, ARotate, ADeviceX, ADeviceY: Integer;
+  out APageX, APageY: Double): Boolean;
+begin
+  APageX := 0;
+  APageY := 0;
+  if FHandle = nil then
+    Exit(False);
+  Result := FPDF_BoolToBoolean(FPDF_DeviceToPage(FHandle, AStartX, AStartY, ASizeX, ASizeY, ARotate,
+    ADeviceX, ADeviceY, APageX, APageY));
+end;
+
+function TPdfPage.PageToDevice(AStartX, AStartY, ASizeX, ASizeY, ARotate: Integer;
+  APageX, APageY: Double; out ADeviceX, ADeviceY: Integer): Boolean;
+begin
+  ADeviceX := 0;
+  ADeviceY := 0;
+  if FHandle = nil then
+    Exit(False);
+  Result := FPDF_BoolToBoolean(FPDF_PageToDevice(FHandle, AStartX, AStartY, ASizeX, ASizeY, ARotate,
+    APageX, APageY, ADeviceX, ADeviceY));
 end;
 
 function TPdfPage.GetRotation: Integer;

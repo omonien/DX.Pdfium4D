@@ -141,11 +141,13 @@
         </DelphiCompile>
         <DCCReference Include="..\DX.Pdf.API.pas"/>
         <DCCReference Include="..\DX.Pdf.Document.pas"/>
+        <DCCReference Include="..\DX.Pdf.Viewer.Core.pas"/>
         <DCCReference Include="..\DX.Pdf.Viewer.FMX.pas" Condition="'$(Platform)'!='Linux64' or '$(FmxLinux)'=='true'"/>
         <DCCReference Include="DX.Pdf.Document.Tests.pas"/>
         <DCCReference Include="DX.Pdf.CheatSheets.Tests.pas"/>
         <DCCReference Include="DX.Pdf.Extended.Tests.pas"/>
         <DCCReference Include="DX.Pdf.ABI.Tests.pas"/>
+        <DCCReference Include="DX.Pdf.Selection.Tests.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
