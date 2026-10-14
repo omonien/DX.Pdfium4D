@@ -175,6 +175,11 @@ type
     m_Param: Pointer;           // Custom user data passed to callback
   end;
 
+// On Windows all imports are delay loaded, so the application can decide
+// which pdfium.dll gets loaded (e.g. via SetDllDirectory or LoadLibrary)
+// before the first PDFium call. "delayed" is Windows specific (W1002).
+{$WARN SYMBOL_PLATFORM OFF}
+
 // Library initialization and cleanup
 procedure FPDF_InitLibrary; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 procedure FPDF_InitLibraryWithConfig(const AConfig: PFPDF_LIBRARY_CONFIG); cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
@@ -245,6 +250,8 @@ function FPDFBookmark_GetFirstChild(ADocument: FPDF_DOCUMENT; ABookmark: FPDF_BO
 function FPDFBookmark_GetNextSibling(ADocument: FPDF_DOCUMENT; ABookmark: FPDF_BOOKMARK): FPDF_BOOKMARK; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 function FPDFBookmark_GetTitle(ABookmark: FPDF_BOOKMARK; ABuffer: Pointer; ABufLen: FPDF_DWORD): FPDF_DWORD; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 function FPDFBookmark_GetDest(ADocument: FPDF_DOCUMENT; ABookmark: FPDF_BOOKMARK): FPDF_DEST; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+
+{$WARN SYMBOL_PLATFORM DEFAULT}
 
 // Helper functions
 function FPDF_BoolToBoolean(AValue: FPDF_BOOL): Boolean; inline;
