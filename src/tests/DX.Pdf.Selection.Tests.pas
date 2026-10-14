@@ -1,4 +1,4 @@
-﻿{*******************************************************************************
+{*******************************************************************************
   Unit: DX.Pdf.Selection.Tests
 
   Part of DX Pdfium4D - Delphi Cross-Platform Wrapper für Pdfium
@@ -581,7 +581,7 @@ begin
     LViewer.ClearSelection;
     Assert.IsFalse(LViewer.HasSelection, 'ClearSelection drops the range');
     Assert.AreEqual('', LViewer.GetSelectedText);
-    Assert.AreEqual(0, Length(LViewer.GetSelectionRects), 'No rectangles after clear');
+    Assert.AreEqual(Integer(0), Integer(Length(LViewer.GetSelectionRects)), 'No rectangles after clear');
 
     // Clearing an empty selection is a no-op.
     LViewer.OnSelectionChanged := HandleSelectionChanged;
