@@ -1,4 +1,4 @@
-﻿{*******************************************************************************
+{*******************************************************************************
   Unit: DX.Pdf.Viewer.Core
 
   Part of DX Pdfium4D - Delphi Cross-Platform Wrapper für Pdfium
@@ -46,25 +46,6 @@ type
     ScreenScaleX: Double;
     ScreenScaleY: Double;
   end;
-
-  /// <summary>
-  /// Converts a control-local point to device pixels for AMap.
-  /// </summary>
-  function PdfScreenToDevice(const AMap: TPdfPageViewMap; AScreenX, AScreenY: Double;
-    out ADeviceX, ADeviceY: Integer): Boolean;
-
-  /// <summary>
-  /// Converts device pixels to a control-local point for AMap.
-  /// </summary>
-  function PdfDeviceToScreen(const AMap: TPdfPageViewMap; ADeviceX, ADeviceY: Integer;
-    out AScreenX, AScreenY: Double): Boolean;
-
-  /// <summary>
-  /// Maps a PDF-space rectangle (Y up) to a normalized screen rectangle (Y down).
-  /// All four corners are converted so rotation is covered.
-  /// </summary>
-  function PdfRectToScreen(APage: TPdfPage; const AMap: TPdfPageViewMap; const APdfRect: TRectF;
-    out AScreenRect: TRectF): Boolean;
 
   /// <summary>
   /// Abstract base class for PDF viewer components
@@ -286,6 +267,25 @@ type
     /// </summary>
     function CharIndexAtScreenPoint(const AMap: TPdfPageViewMap; AScreenX, AScreenY: Double): Integer;
   end;
+
+  /// <summary>
+  /// Converts a control-local point to device pixels for AMap.
+  /// </summary>
+function PdfScreenToDevice(const AMap: TPdfPageViewMap; AScreenX, AScreenY: Double;
+    out ADeviceX, ADeviceY: Integer): Boolean;
+
+  /// <summary>
+  /// Converts device pixels to a control-local point for AMap.
+  /// </summary>
+function PdfDeviceToScreen(const AMap: TPdfPageViewMap; ADeviceX, ADeviceY: Integer;
+    out AScreenX, AScreenY: Double): Boolean;
+
+  /// <summary>
+  /// Maps a PDF-space rectangle (Y up) to a normalized screen rectangle (Y down).
+  /// All four corners are converted so rotation is covered.
+  /// </summary>
+function PdfRectToScreen(APage: TPdfPage; const AMap: TPdfPageViewMap; const APdfRect: TRectF;
+    out AScreenRect: TRectF): Boolean;
 
 implementation
 
