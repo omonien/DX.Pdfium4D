@@ -56,6 +56,19 @@ begin
     // Check command line options, will exit if invalid
     TDUnitX.CheckCommandLine;
 
+    // Tests in the category 'Network' need internet access and are opt-in.
+    // They only run when categories are requested explicitly with
+    // --include (e.g. --include:Network) or when the environment variable
+    // DX_PDFIUM4D_NETWORK_TESTS is set to 1.
+    if (TDUnitX.Options.Include = '') and
+      (GetEnvironmentVariable('DX_PDFIUM4D_NETWORK_TESTS') <> '1') then
+    begin
+      if TDUnitX.Options.Exclude = '' then
+        TDUnitX.Options.Exclude := 'Network'
+      else
+        TDUnitX.Options.Exclude := TDUnitX.Options.Exclude + ',Network';
+    end;
+
     // Create the test runner
     LRunner := TDUnitX.CreateRunner;
 
