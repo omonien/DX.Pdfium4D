@@ -175,76 +175,83 @@ type
     m_Param: Pointer;           // Custom user data passed to callback
   end;
 
+// On Windows all imports are delay loaded, so the application can decide
+// which pdfium.dll gets loaded (e.g. via SetDllDirectory or LoadLibrary)
+// before the first PDFium call. "delayed" is Windows specific (W1002).
+{$WARN SYMBOL_PLATFORM OFF}
+
 // Library initialization and cleanup
-procedure FPDF_InitLibrary; cdecl; external PDFIUM_DLL;
-procedure FPDF_InitLibraryWithConfig(const AConfig: PFPDF_LIBRARY_CONFIG); cdecl; external PDFIUM_DLL;
-procedure FPDF_DestroyLibrary; cdecl; external PDFIUM_DLL;
+procedure FPDF_InitLibrary; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+procedure FPDF_InitLibraryWithConfig(const AConfig: PFPDF_LIBRARY_CONFIG); cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+procedure FPDF_DestroyLibrary; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 
 // Error handling
-function FPDF_GetLastError: FPDF_DWORD; cdecl; external PDFIUM_DLL;
+function FPDF_GetLastError: FPDF_DWORD; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 
 // Document functions
-function FPDF_LoadDocument(const AFilePath: FPDF_STRING; const APassword: FPDF_BYTESTRING): FPDF_DOCUMENT; cdecl; external PDFIUM_DLL;
-function FPDF_LoadMemDocument(const ADataBuf: Pointer; ASize: Integer; const APassword: FPDF_BYTESTRING): FPDF_DOCUMENT; cdecl; external PDFIUM_DLL;
-function FPDF_LoadCustomDocument(pFileAccess: PFPDF_FILEACCESS; const APassword: FPDF_BYTESTRING): FPDF_DOCUMENT; cdecl; external PDFIUM_DLL;
-procedure FPDF_CloseDocument(ADocument: FPDF_DOCUMENT); cdecl; external PDFIUM_DLL;
-function FPDF_GetPageCount(ADocument: FPDF_DOCUMENT): Integer; cdecl; external PDFIUM_DLL;
-function FPDF_GetFileVersion(ADocument: FPDF_DOCUMENT; var AFileVersion: Integer): FPDF_BOOL; cdecl; external PDFIUM_DLL;
-function FPDF_GetPageSizeByIndex(ADocument: FPDF_DOCUMENT; APageIndex: Integer; out AWidth: Double; out AHeight: Double): FPDF_BOOL; cdecl; external PDFIUM_DLL;
-function FPDF_GetMetaText(ADocument: FPDF_DOCUMENT; const ATag: FPDF_BYTESTRING; ABuffer: Pointer; ABufLen: FPDF_DWORD): FPDF_DWORD; cdecl; external PDFIUM_DLL;
+function FPDF_LoadDocument(const AFilePath: FPDF_STRING; const APassword: FPDF_BYTESTRING): FPDF_DOCUMENT; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDF_LoadMemDocument(const ADataBuf: Pointer; ASize: Integer; const APassword: FPDF_BYTESTRING): FPDF_DOCUMENT; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDF_LoadCustomDocument(pFileAccess: PFPDF_FILEACCESS; const APassword: FPDF_BYTESTRING): FPDF_DOCUMENT; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+procedure FPDF_CloseDocument(ADocument: FPDF_DOCUMENT); cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDF_GetPageCount(ADocument: FPDF_DOCUMENT): Integer; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDF_GetFileVersion(ADocument: FPDF_DOCUMENT; var AFileVersion: Integer): FPDF_BOOL; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDF_GetPageSizeByIndex(ADocument: FPDF_DOCUMENT; APageIndex: Integer; out AWidth: Double; out AHeight: Double): FPDF_BOOL; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDF_GetMetaText(ADocument: FPDF_DOCUMENT; const ATag: FPDF_BYTESTRING; ABuffer: Pointer; ABufLen: FPDF_DWORD): FPDF_DWORD; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 
 // Page functions (fpdfview.h)
-function FPDF_LoadPage(ADocument: FPDF_DOCUMENT; APageIndex: Integer): FPDF_PAGE; cdecl; external PDFIUM_DLL;
-procedure FPDF_ClosePage(APage: FPDF_PAGE); cdecl; external PDFIUM_DLL;
-function FPDF_GetPageWidth(APage: FPDF_PAGE): Double; cdecl; external PDFIUM_DLL;
-function FPDF_GetPageHeight(APage: FPDF_PAGE): Double; cdecl; external PDFIUM_DLL;
+function FPDF_LoadPage(ADocument: FPDF_DOCUMENT; APageIndex: Integer): FPDF_PAGE; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+procedure FPDF_ClosePage(APage: FPDF_PAGE); cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDF_GetPageWidth(APage: FPDF_PAGE): Double; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDF_GetPageHeight(APage: FPDF_PAGE): Double; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 
 // Page edit functions (fpdf_edit.h)
-function FPDFPage_GetRotation(APage: FPDF_PAGE): Integer; cdecl; external PDFIUM_DLL;
+function FPDFPage_GetRotation(APage: FPDF_PAGE): Integer; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 
 // Bitmap functions
-function FPDFBitmap_Create(AWidth: Integer; AHeight: Integer; AAlpha: Integer): FPDF_BITMAP; cdecl; external PDFIUM_DLL;
-function FPDFBitmap_CreateEx(AWidth: Integer; AHeight: Integer; AFormat: Integer; AFirstScan: Pointer; AStride: Integer): FPDF_BITMAP; cdecl; external PDFIUM_DLL;
-procedure FPDFBitmap_Destroy(ABitmap: FPDF_BITMAP); cdecl; external PDFIUM_DLL;
-function FPDFBitmap_GetBuffer(ABitmap: FPDF_BITMAP): Pointer; cdecl; external PDFIUM_DLL;
-function FPDFBitmap_GetWidth(ABitmap: FPDF_BITMAP): Integer; cdecl; external PDFIUM_DLL;
-function FPDFBitmap_GetHeight(ABitmap: FPDF_BITMAP): Integer; cdecl; external PDFIUM_DLL;
-function FPDFBitmap_GetStride(ABitmap: FPDF_BITMAP): Integer; cdecl; external PDFIUM_DLL;
-procedure FPDFBitmap_FillRect(ABitmap: FPDF_BITMAP; ALeft: Integer; ATop: Integer; AWidth: Integer; AHeight: Integer; AColor: FPDF_DWORD); cdecl; external PDFIUM_DLL;
+function FPDFBitmap_Create(AWidth: Integer; AHeight: Integer; AAlpha: Integer): FPDF_BITMAP; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFBitmap_CreateEx(AWidth: Integer; AHeight: Integer; AFormat: Integer; AFirstScan: Pointer; AStride: Integer): FPDF_BITMAP; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+procedure FPDFBitmap_Destroy(ABitmap: FPDF_BITMAP); cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFBitmap_GetBuffer(ABitmap: FPDF_BITMAP): Pointer; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFBitmap_GetWidth(ABitmap: FPDF_BITMAP): Integer; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFBitmap_GetHeight(ABitmap: FPDF_BITMAP): Integer; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFBitmap_GetStride(ABitmap: FPDF_BITMAP): Integer; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+procedure FPDFBitmap_FillRect(ABitmap: FPDF_BITMAP; ALeft: Integer; ATop: Integer; AWidth: Integer; AHeight: Integer; AColor: FPDF_DWORD); cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 
 // Rendering functions
-procedure FPDF_RenderPageBitmap(ABitmap: FPDF_BITMAP; APage: FPDF_PAGE; AStartX: Integer; AStartY: Integer; ASizeX: Integer; ASizeY: Integer; ARotate: Integer; AFlags: Integer); cdecl; external PDFIUM_DLL;
+procedure FPDF_RenderPageBitmap(ABitmap: FPDF_BITMAP; APage: FPDF_PAGE; AStartX: Integer; AStartY: Integer; ASizeX: Integer; ASizeY: Integer; ARotate: Integer; AFlags: Integer); cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 
 {$IFDEF MSWINDOWS}
-procedure FPDF_RenderPage(ADC: HDC; APage: FPDF_PAGE; AStartX: Integer; AStartY: Integer; ASizeX: Integer; ASizeY: Integer; ARotate: Integer; AFlags: Integer); cdecl; external PDFIUM_DLL;
+procedure FPDF_RenderPage(ADC: HDC; APage: FPDF_PAGE; AStartX: Integer; AStartY: Integer; ASizeX: Integer; ASizeY: Integer; ARotate: Integer; AFlags: Integer); cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 {$ENDIF}
 
 // Text functions
-function FPDFText_LoadPage(APage: FPDF_PAGE): FPDF_TEXTPAGE; cdecl; external PDFIUM_DLL;
-procedure FPDFText_ClosePage(ATextPage: FPDF_TEXTPAGE); cdecl; external PDFIUM_DLL;
-function FPDFText_CountChars(ATextPage: FPDF_TEXTPAGE): Integer; cdecl; external PDFIUM_DLL;
-function FPDFText_GetUnicode(ATextPage: FPDF_TEXTPAGE; AIndex: Integer): Cardinal; cdecl; external PDFIUM_DLL;
-function FPDFText_GetText(ATextPage: FPDF_TEXTPAGE; AStartIndex: Integer; ACount: Integer; AResult: PWideChar): Integer; cdecl; external PDFIUM_DLL;
+function FPDFText_LoadPage(APage: FPDF_PAGE): FPDF_TEXTPAGE; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+procedure FPDFText_ClosePage(ATextPage: FPDF_TEXTPAGE); cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFText_CountChars(ATextPage: FPDF_TEXTPAGE): Integer; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFText_GetUnicode(ATextPage: FPDF_TEXTPAGE; AIndex: Integer): Cardinal; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFText_GetText(ATextPage: FPDF_TEXTPAGE; AStartIndex: Integer; ACount: Integer; AResult: PWideChar): Integer; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 
-function FPDFText_GetCharBox(ATextPage: FPDF_TEXTPAGE; AIndex: Integer; var ALeft, ARight, ABottom, ATop: Double): Boolean; cdecl; external PDFIUM_DLL;
-function FPDFText_GetCharIndexAtPos(ATextPage: FPDF_TEXTPAGE; AX, AY, AXTolerance, AYTolerance: Double): Integer; cdecl; external PDFIUM_DLL;
-function FPDFText_GetRect(ATextPage: FPDF_TEXTPAGE; AIndex: Integer; var ALeft, ATop, ARight, ABottom: Double): Boolean; cdecl; external PDFIUM_DLL;
+function FPDFText_GetCharBox(ATextPage: FPDF_TEXTPAGE; AIndex: Integer; var ALeft, ARight, ABottom, ATop: Double): Boolean; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFText_GetCharIndexAtPos(ATextPage: FPDF_TEXTPAGE; AX, AY, AXTolerance, AYTolerance: Double): Integer; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFText_GetRect(ATextPage: FPDF_TEXTPAGE; AIndex: Integer; var ALeft, ATop, ARight, ABottom: Double): Boolean; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 
-function FPDFText_FindStart(ATextPage: FPDF_TEXTPAGE; AFindwhat: PWideChar; AFlags: FPDF_DWORD; AStartIndex: Integer): FPDF_SCHHANDLE; cdecl; external PDFIUM_DLL;
-function FPDFText_FindNext(ASchHandle: FPDF_SCHHANDLE): Boolean; cdecl; external PDFIUM_DLL;
-function FPDFText_FindPrev(ASchHandle: FPDF_SCHHANDLE): Boolean; cdecl; external PDFIUM_DLL;
-function FPDFText_GetSchResultIndex(ASchHandle: FPDF_SCHHANDLE): Integer; cdecl; external PDFIUM_DLL;
-function FPDFText_GetSchCount(ASchHandle: FPDF_SCHHANDLE): Integer; cdecl; external PDFIUM_DLL;
-procedure FPDFText_FindClose(ASchHandle: FPDF_SCHHANDLE); cdecl; external PDFIUM_DLL;
+function FPDFText_FindStart(ATextPage: FPDF_TEXTPAGE; AFindwhat: PWideChar; AFlags: FPDF_DWORD; AStartIndex: Integer): FPDF_SCHHANDLE; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFText_FindNext(ASchHandle: FPDF_SCHHANDLE): Boolean; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFText_FindPrev(ASchHandle: FPDF_SCHHANDLE): Boolean; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFText_GetSchResultIndex(ASchHandle: FPDF_SCHHANDLE): Integer; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFText_GetSchCount(ASchHandle: FPDF_SCHHANDLE): Integer; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+procedure FPDFText_FindClose(ASchHandle: FPDF_SCHHANDLE); cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 
-function FPDFText_CountRects(ATextPage: FPDF_TEXTPAGE; AStartIndex, ACount: Integer): Integer; cdecl; external PDFIUM_DLL;
-function FPDFText_GetBoundedText(ATextPage: FPDF_TEXTPAGE; ALeft, ATop, ARight, ABottom: Double; ABuffer: PWideChar; ABufLen: Integer): Integer; cdecl; external PDFIUM_DLL;
+function FPDFText_CountRects(ATextPage: FPDF_TEXTPAGE; AStartIndex, ACount: Integer): Integer; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFText_GetBoundedText(ATextPage: FPDF_TEXTPAGE; ALeft, ATop, ARight, ABottom: Double; ABuffer: PWideChar; ABufLen: Integer): Integer; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
 
 // Bookmark functions
-function FPDFBookmark_GetFirstChild(ADocument: FPDF_DOCUMENT; ABookmark: FPDF_BOOKMARK): FPDF_BOOKMARK; cdecl; external PDFIUM_DLL;
-function FPDFBookmark_GetNextSibling(ADocument: FPDF_DOCUMENT; ABookmark: FPDF_BOOKMARK): FPDF_BOOKMARK; cdecl; external PDFIUM_DLL;
-function FPDFBookmark_GetTitle(ABookmark: FPDF_BOOKMARK; ABuffer: Pointer; ABufLen: FPDF_DWORD): FPDF_DWORD; cdecl; external PDFIUM_DLL;
-function FPDFBookmark_GetDest(ADocument: FPDF_DOCUMENT; ABookmark: FPDF_BOOKMARK): FPDF_DEST; cdecl; external PDFIUM_DLL;
+function FPDFBookmark_GetFirstChild(ADocument: FPDF_DOCUMENT; ABookmark: FPDF_BOOKMARK): FPDF_BOOKMARK; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFBookmark_GetNextSibling(ADocument: FPDF_DOCUMENT; ABookmark: FPDF_BOOKMARK): FPDF_BOOKMARK; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFBookmark_GetTitle(ABookmark: FPDF_BOOKMARK; ABuffer: Pointer; ABufLen: FPDF_DWORD): FPDF_DWORD; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+function FPDFBookmark_GetDest(ADocument: FPDF_DOCUMENT; ABookmark: FPDF_BOOKMARK): FPDF_DEST; cdecl; external PDFIUM_DLL {$IFDEF MSWINDOWS}delayed{$ENDIF};
+
+{$WARN SYMBOL_PLATFORM DEFAULT}
 
 // Helper functions
 function FPDF_BoolToBoolean(AValue: FPDF_BOOL): Boolean; inline;
