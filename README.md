@@ -427,6 +427,7 @@ cd build
 
 ```powershell
 DxPdfium4dTests.exe --include:Network      # run only the network tests
+DxPdfium4dTests.exe --run:DX.Pdf.CheatSheets.Tests   # select the test by name
 $env:DX_PDFIUM4D_NETWORK_TESTS = '1'       # run all tests including network tests
 DxPdfium4dTests.exe
 ```

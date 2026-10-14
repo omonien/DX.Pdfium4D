@@ -10,6 +10,7 @@ interface
   the default test run (see DxPdfium4dTests.dpr). Enable it explicitly with
   either:
     DxPdfium4dTests.exe --include:Network
+    DxPdfium4dTests.exe --run:DX.Pdf.CheatSheets.Tests
     set DX_PDFIUM4D_NETWORK_TESTS=1
   Each download is retried up to 3 times. When no cheat sheet can be
   downloaded at all (no network), the test is skipped (it ends early with
