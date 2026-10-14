@@ -68,6 +68,7 @@ type
   private
     FHandleSearch: FPDF_SCHHANDLE;
     FPage: TPdfPage;
+    FNotify: TSearchNotify;
     procedure NotifyHandle;
   public
     function FindNext: Boolean;
@@ -879,13 +880,14 @@ begin
   inherited Create;
   FPage := APage;
   FHandleSearch := FPDFText_FindStart(FPage.FHandleText, PWideChar(AFindwhat), AFlags, AStartIndex);
-  FPage.AddSearchNotify(NotifyHandle);
+  FNotify := NotifyHandle;
+  FPage.AddSearchNotify(FNotify);
 end;
 
 destructor TPageSearch.Destroy;
 begin
   if Assigned(FPage) then
-    FPage.RemoveSearchNotify(NotifyHandle);
+    FPage.RemoveSearchNotify(FNotify);
   inherited;
 end;
 

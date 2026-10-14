@@ -30,6 +30,8 @@ uses
   System.Classes,
   System.IOUtils,
   System.Types,
+  System.Rtti,
+  System.Generics.Collections,
   DX.Pdf.API,
   DX.Pdf.Document;
 
@@ -83,6 +85,8 @@ type
     procedure TestSearchNoMatch;
     [Test]
     procedure TestSearchCaseSensitive;
+    [Test]
+    procedure TestSearchUnregistersNotifyOnFree;
 
     // --- Rendering ---
     [Test]
@@ -557,6 +561,43 @@ begin
     LSearch := LPage.FindStart('ZZZZNOTFOUND', 0, 0);
     Assert.IsFalse(LSearch.FindNext, 'Should not find non-existent text');
   finally
+    LDocument.Free;
+  end;
+end;
+
+procedure TPdfExtendedTests.TestSearchUnregistersNotifyOnFree;
+// Regression test for #19: freeing a TPageSearch must remove exactly the
+// notify adapter it registered, otherwise the page later calls into the
+// freed search object when it is destroyed.
+  function NotifyCount(APage: TPdfPage): Integer;
+  var
+    LContext: TRttiContext;
+    LField: TRttiField;
+  begin
+    LField := LContext.GetType(TPdfPage).GetField('FSearchNotifies');
+    Assert.IsNotNull(LField, 'TPdfPage.FSearchNotifies not found via RTTI');
+    Result := TList<TSearchNotify>(LField.GetValue(APage).AsObject).Count;
+  end;
+var
+  LDocument: TPdfDocument;
+  LPage: TPdfPage;
+  LSearch: IPageSearch;
+begin
+  LDocument := TPdfDocument.Create;
+  try
+    LDocument.LoadFromFile(FTextPdfPath);
+    LPage := LDocument.Pages[0];
+    Assert.AreEqual(0, NotifyCount(LPage), 'No notifies before search');
+
+    LSearch := LPage.FindStart('Hello', 0, 0);
+    Assert.AreEqual(1, NotifyCount(LPage), 'Search must register one notify');
+    Assert.IsTrue(LSearch.FindNext, 'Should find "Hello"');
+
+    // Free the search before the page
+    LSearch := nil;
+    Assert.AreEqual(0, NotifyCount(LPage), 'Freed search must unregister its notify');
+  finally
+    // Destroys the page; must not call into the freed search
     LDocument.Free;
   end;
 end;
