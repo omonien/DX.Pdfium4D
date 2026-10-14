@@ -431,7 +431,7 @@ $env:DX_PDFIUM4D_NETWORK_TESTS = '1'       # run all tests including network tes
 DxPdfium4dTests.exe
 ```
 
-Each download is retried up to 3 times. Without a network connection the test is reported as ignored instead of failed.
+Each download is retried up to 3 times. Without a network connection the test is skipped (it ends early with a `SKIPPED` message) instead of failing.
 
 ### Test Coverage
 

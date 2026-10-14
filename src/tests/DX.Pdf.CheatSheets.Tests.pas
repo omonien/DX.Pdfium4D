@@ -12,7 +12,8 @@ interface
     DxPdfium4dTests.exe --include:Network
     set DX_PDFIUM4D_NETWORK_TESTS=1
   Each download is retried up to 3 times. When no cheat sheet can be
-  downloaded at all (no network), the test is ignored instead of failing.
+  downloaded at all (no network), the test is skipped (it ends early with
+  Assert.Pass and a SKIPPED message) instead of failing.
 }
 
 uses
@@ -249,7 +250,9 @@ begin
   // Nothing could be downloaded because of connection errors: no network.
   // Skip instead of failing, this is not a defect of the library.
   if (LSuccessCount = 0) and (LNetworkErrorCount = LTotalCount) then
-    Assert.Ignore('No network connection, cheat sheet downloads skipped.');
+    // The bundled DUnitX has no runtime Assert.Ignore, so end the test early
+    // with Assert.Pass and a message that marks it as skipped.
+    Assert.Pass('SKIPPED: No network connection, cheat sheet downloads skipped.');
 
   Assert.AreEqual(LTotalCount, LSuccessCount,
     Format('All cheat sheets should load successfully. %d failed.', [LFailCount]));
